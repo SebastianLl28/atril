@@ -1,6 +1,6 @@
-"""Librería de diagramas SVG en blanco y negro, para imprimir nítido.
+"""Black-and-white SVG diagram library, for crisp printing.
 
-Sale de `referencia/solid/figs.py`. Uso típico en el `figs.py` de una parte:
+Extracted from `referencia/solid/figs.py`. Typical use in a part's `figs.py`:
 
     from atril.svg import Svg
 
@@ -10,8 +10,8 @@ Sale de `referencia/solid/figs.py`. Uso típico en el `figs.py` de una parte:
     s.arrow([(128, 32), (268, 130)], dash="5,4")
     s.save("salida/fig7-1.svg")
 
-Coordenadas en px con el origen arriba a la izquierda. Flechas: `kind="open"` (usa / conoce
-a), `kind="tri"` (hereda / implementa); `dash` para dependencias o flujos.
+Coordinates in px with the origin at the top left. Arrows: `kind="open"` (uses / knows),
+`kind="tri"` (inherits / implements); `dash` for dependencies or flows.
 """
 
 import math
@@ -22,7 +22,7 @@ MONO = "DejaVu Sans Mono, monospace"
 STROKE = "#111"
 
 
-def _escapar(s):
+def _escape(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
@@ -39,19 +39,19 @@ class Svg:
                 f'viewBox="0 0 {self.w} {self.h}" font-family="{SANS}">\n'
                 f'<rect width="{self.w}" height="{self.h}" fill="white"/>\n{body}\n</svg>\n')
 
-    def save(self, ruta):
-        ruta = Path(ruta)
-        ruta.parent.mkdir(parents=True, exist_ok=True)
-        ruta.write_text(self.render(), encoding="utf-8")
-        return ruta
+    def save(self, path):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.render(), encoding="utf-8")
+        return path
 
-    # ---- primitivas -------------------------------------------------------
+    # ---- primitives ------------------------------------------------------
     def text(self, x, y, s, size=12, weight="normal", anchor="middle", family=None,
              fill=STROKE, style="normal"):
         fam = family or SANS
         self.add(f'<text x="{x}" y="{y}" font-size="{size}" font-weight="{weight}" '
                  f'font-style="{style}" text-anchor="{anchor}" font-family="{fam}" '
-                 f'fill="{fill}">{_escapar(s)}</text>')
+                 f'fill="{fill}">{_escape(s)}</text>')
 
     def rect(self, x, y, w, h, sw=1.3, fill="white", dash=None, stroke=STROKE):
         d = f' stroke-dasharray="{dash}"' if dash else ""
@@ -81,9 +81,9 @@ class Svg:
             self.add(f'<polygon points="{p}" fill="white" stroke="{stroke}" stroke-width="1.3"/>')
 
     def arrow(self, pts, kind="open", dash=None, stroke=STROKE, sw=1.3):
-        """Polilínea con punta en el último punto: "open" = usa, "tri" = hereda/implementa."""
+        """Polyline with a head at the last point: "open" = uses, "tri" = inherits/implements."""
         if kind == "tri":
-            # acorta la línea para que no atraviese el triángulo
+            # shorten the line so it doesn't cross the triangle
             (x1, y1), (x2, y2) = pts[-2], pts[-1]
             a = math.atan2(y2 - y1, x2 - x1)
             short = pts[:-1] + [(x2 - 13 * math.cos(a), y2 - 13 * math.sin(a))]
@@ -92,13 +92,13 @@ class Svg:
             self.line(pts, dash=dash, stroke=stroke, sw=sw)
         self.head(pts[-2], pts[-1], kind, stroke=stroke)
 
-    # ---- figuras compuestas -----------------------------------------------
+    # ---- composite shapes ------------------------------------------------
     def cls(self, x, y, w, title, members=(), stereo=None, h=None, title_size=12.5,
             member_family=None):
-        """Caja de clase UML. title puede tener varias líneas separadas por \\n.
+        """UML class box. title may have several lines separated by \\n.
 
-        stereo="I" (interfaz) o "DS" (estructura de datos) va en la esquina superior derecha.
-        Devuelve la altura total de la caja.
+        stereo="I" (interface) or "DS" (data structure) goes in the top right corner.
+        Returns the box's total height.
         """
         lines = title.split("\n")
         th = max(h or 0, 16 * len(lines) + 14) if not members else 16 * len(lines) + 12
@@ -119,7 +119,7 @@ class Svg:
         return total
 
     def component(self, x, y, w, h, label):
-        """Recuadro de componente (doble borde) con la etiqueta sobre el borde superior."""
+        """Component frame (double border) with the label over the top border."""
         self.rect(x, y, w, h, sw=1.1, fill="none")
         self.rect(x + 3.5, y + 3.5, w - 7, h - 7, sw=1.1, fill="none")
         tw = len(label) * 6.6 + 8
@@ -127,7 +127,7 @@ class Svg:
         self.text(x + 16, y + 4, label, size=11, anchor="start", fill="#333")
 
     def uml_comp(self, x, y, w, h, title):
-        """Componente UML: caja con las dos pestañas a la izquierda."""
+        """UML component: box with the two tabs on the left."""
         self.rect(x, y, w, h)
         for dy in (0.25, 0.6):
             self.rect(x - 7, y + h * dy, 14, 9, sw=1.1)
@@ -137,7 +137,7 @@ class Svg:
             self.text(x + w / 2 + 4, ty + i * 16, ln, size=12, weight="bold")
 
     def actor(self, cx, cy, label, sub=None):
-        """Monigote UML; (cx, cy) es el centro de la cabeza. Ocupa unos 85 px de alto."""
+        """UML stick figure; (cx, cy) is the head's center. About 85 px tall."""
         self.add(f'<circle cx="{cx}" cy="{cy}" r="9" fill="white" stroke="{STROKE}" '
                  f'stroke-width="1.3"/>')
         self.line([(cx, cy + 9), (cx, cy + 34)])
@@ -148,7 +148,7 @@ class Svg:
             self.text(cx, cy + 83, sub, size=10, fill="#444")
 
     def ellipse(self, cx, cy, rx, ry, label):
-        """Proceso de un diagrama de flujo de datos."""
+        """Process of a data flow diagram."""
         self.add(f'<ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="white" '
                  f'stroke="{STROKE}" stroke-width="1.3"/>')
         lines = label.split("\n")
@@ -156,7 +156,7 @@ class Svg:
             self.text(cx, cy - 3 + i * 15 - 7 * (len(lines) - 2), ln, size=12, weight="bold")
 
     def store(self, x, y, w, label):
-        """Almacén de datos: dos líneas horizontales con el nombre en medio (44 px de alto)."""
+        """Data store: two horizontal lines with the name in between (44 px tall)."""
         self.line([(x, y), (x + w, y)])
         self.line([(x, y + 44), (x + w, y + 44)])
         for i, ln in enumerate(label.split("\n")):

@@ -1,4 +1,4 @@
-"""Atril: arma paquetes de contexto para traducir y mejorar libros por partes."""
+"""Atril: builds context bundles to translate and improve books part by part."""
 
 from .cli import main
 

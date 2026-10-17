@@ -1,5 +1,5 @@
-/* Plantilla de impresión de Atril (carta, WeasyPrint). Sale de referencia/solid/solid.html.
-   Ajustes de una parte concreta: en un <style> dentro de su HTML, no aquí. */
+/* Atril print template (US Letter, WeasyPrint), derived from referencia/solid/solid.html.
+   Per-part tweaks go in a <style> inside that part's HTML, not here. */
 @page {
   size: letter;
   margin: 2.2cm 2.1cm 2.3cm 2.1cm;
@@ -52,7 +52,7 @@ table.cfg th { font-family: "Noto Sans", sans-serif; background: #eee; }
 .fig figcaption { font-size: 8.8pt; color: #333; margin-top: .45em; }
 .fig figcaption b { color: #000; }
 
-/* Comentarios añadidos: no forman parte del libro */
+/* Added commentary boxes: not part of the book */
 .com { border: 1px solid #555; border-left: 5px solid #111; background: #ececec; padding: .55em .9em .35em;
        margin: .9em 0 1.1em; font-family: "Noto Sans", sans-serif; font-size: 9.3pt; line-height: 1.45; page-break-inside: avoid; }
 .com .label { display: block; font-size: 7.6pt; font-weight: bold; letter-spacing: .12em; text-transform: uppercase; color: #000; margin-bottom: .35em; }
@@ -70,5 +70,5 @@ table.cfg th { font-family: "Noto Sans", sans-serif; background: #eee; }
 ::footnote-marker { content: counter(footnote) ". "; }
 @page { @footnote { border-top: 1px solid #999; padding-top: .4em; margin-top: .6em; } }
 
-/* Fuente de un recuadro de contexto */
+/* Source line of a context box */
 .com .fuente { display: block; margin-top: .35em; font-size: 7.8pt; color: #444; }

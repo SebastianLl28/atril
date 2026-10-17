@@ -1,6 +1,6 @@
-"""Genera los diagramas del capítulo SOLID como SVG vectoriales.
+"""Generates the SOLID chapter diagrams as vector SVGs.
 
-Uso: uv run python referencia/solid/figs.py <carpeta-salida>
+Usage: uv run python referencia/solid/figs.py <output-folder>
 """
 import sys
 from pathlib import Path
@@ -9,7 +9,7 @@ from atril.svg import Svg
 
 OUT = Path(sys.argv[1])
 
-# ---------------------------------------------------------------- Figura 7.1
+# ---------------------------------------------------------------- Figure 7.1
 s = Svg(470, 300)
 s.cls(270, 95, 170, "Employee", ["+ calculatePay", "+ reportHours", "+ save"])
 s.actor(110, 12, "CFO", "Contabilidad")
@@ -20,7 +20,7 @@ s.arrow([(65, 132), (268, 148)], dash="5,4")
 s.arrow([(128, 225), (268, 166)], dash="5,4")
 s.save(OUT / "fig7-1.svg")
 
-# ---------------------------------------------------------------- Figura 7.2
+# ---------------------------------------------------------------- Figure 7.2
 s = Svg(420, 150)
 s.cls(20, 15, 140, "calculatePay", title_size=13, h=34)
 s.cls(260, 15, 140, "reportHours", title_size=13, h=34)
@@ -29,7 +29,7 @@ s.arrow([(160, 32), (185, 32), (185, 100)])
 s.arrow([(260, 32), (235, 32), (235, 100)])
 s.save(OUT / "fig7-2.svg")
 
-# ---------------------------------------------------------------- Figura 7.3
+# ---------------------------------------------------------------- Figure 7.3
 s = Svg(400, 200)
 for i, (t, m) in enumerate([("PayCalculator", "+ calculatePay"),
                             ("HourReporter", "+ reportHours"),
@@ -41,7 +41,7 @@ s.arrow([(205, 94), (255, 94)])
 s.cls(255, 70, 125, "EmployeeData", title_size=12.5, h=48)
 s.save(OUT / "fig7-3.svg")
 
-# ---------------------------------------------------------------- Figura 7.4
+# ---------------------------------------------------------------- Figure 7.4
 s = Svg(600, 200)
 s.cls(10, 50, 150, "EmployeeFacade", ["+ calculatePay", "+ reportHours", "+ save"])
 for i, (t, m) in enumerate([("PayCalculator", "+ calculatePay"),
@@ -58,7 +58,7 @@ s.arrow([(415, 94), (455, 94)])
 s.cls(455, 70, 125, "EmployeeData", h=48)
 s.save(OUT / "fig7-4.svg")
 
-# ---------------------------------------------------------------- Figura 7.5
+# ---------------------------------------------------------------- Figure 7.5
 s = Svg(470, 175)
 s.cls(10, 20, 165, "Employee", ["- employeeData", "+ calculatePay", "+ reportHours", "+ save"])
 s.cls(290, 15, 155, "HourReporter", ["+ reportHours"])
@@ -68,7 +68,7 @@ s.arrow([(230, 80), (230, 35), (288, 35)])
 s.arrow([(230, 80), (230, 130), (288, 130)])
 s.save(OUT / "fig7-5.svg")
 
-# ---------------------------------------------------------------- Figura 8.1
+# ---------------------------------------------------------------- Figure 8.1
 s = Svg(620, 220)
 s.store(10, 95, 120, "Datos\nfinancieros")
 s.ellipse(205, 50, 70, 32, "Analizador\nfinanciero")
@@ -81,7 +81,7 @@ s.arrow([(350, 133), (390, 70), (433, 45)])
 s.arrow([(385, 181), (433, 180)])
 s.save(OUT / "fig8-1.svg")
 
-# ---------------------------------------------------------------- Figura 8.2
+# ---------------------------------------------------------------- Figure 8.2
 s = Svg(820, 690)
 s.component(10, 10, 232, 232, "Controller")
 s.component(258, 10, 552, 232, "Interactor")
@@ -90,7 +90,7 @@ s.component(205, 270, 180, 302, "Print Presenter")
 s.component(10, 590, 180, 85, "Web View")
 s.component(205, 590, 180, 85, "PDF View")
 s.component(490, 380, 320, 130, "Database")
-# clases
+# classes
 s.cls(40, 45, 150, "Financial\nReport\nController", h=60)
 s.cls(40, 160, 150, "Financial\nReport\nPresenter", stereo="I", h=60)
 s.cls(290, 25, 140, "Financial\nReport\nRequest", stereo="DS", h=58)
@@ -109,7 +109,7 @@ s.cls(30, 607, 120, "Web\nView", h=45)
 s.cls(225, 607, 120, "PDF\nView", h=45)
 s.cls(510, 418, 130, "Financial\nData\nMapper", h=58)
 s.cls(665, 425, 125, "Financial\nDatabase", h=46)
-# relaciones: Controller
+# relations: Controller
 s.arrow([(115, 108), (115, 159)])
 s.line([(190, 75), (250, 75)])
 s.line([(250, 54), (250, 180)])
@@ -137,7 +137,7 @@ for dx in (0, 195):
     s.arrow([(115 + dx, 607), (115 + dx, 527)], kind="tri")
 s.save(OUT / "fig8-2.svg")
 
-# ---------------------------------------------------------------- Figura 8.3
+# ---------------------------------------------------------------- Figure 8.3
 s = Svg(480, 320)
 s.uml_comp(80, 15, 140, 60, "Financial\nReport\nController")
 s.uml_comp(320, 15, 140, 60, "Financial\nReport\nInteractor")
@@ -154,7 +154,7 @@ s.arrow([(88, 250), (88, 186)])
 s.arrow([(240, 250), (240, 186)])
 s.save(OUT / "fig8-3.svg")
 
-# ---------------------------------------------------------------- Figura 9.1
+# ---------------------------------------------------------------- Figure 9.1
 s = Svg(460, 230)
 s.cls(15, 22, 120, "Billing", h=38)
 s.cls(245, 15, 160, "License", ["+ calcFee()"], stereo="I")
@@ -165,7 +165,7 @@ s.line([(205, 150), (205, 120), (375, 120), (375, 150)])
 s.arrow([(325, 120), (325, 77)], kind="tri")
 s.save(OUT / "fig9-1.svg")
 
-# ---------------------------------------------------------------- Figura 9.2
+# ---------------------------------------------------------------- Figure 9.2
 s = Svg(420, 210)
 s.cls(15, 22, 120, "User", h=38)
 s.cls(240, 15, 150, "Rectangle", ["+ setH, + setW"])
@@ -174,7 +174,7 @@ s.cls(240, 140, 150, "Square", ["+ setSide"])
 s.arrow([(315, 140), (315, 77)], kind="tri")
 s.save(OUT / "fig9-2.svg")
 
-# ---------------------------------------------------------------- Figura 10.1
+# ---------------------------------------------------------------- Figure 10.1
 s = Svg(440, 210)
 for i, u in enumerate(["User1", "User2", "User3"]):
     s.cls(15 + i * 145, 12, 120, u, h=38)
@@ -184,7 +184,7 @@ s.arrow([(220, 50), (220, 139)])
 s.arrow([(365, 50), (365, 160), (291, 160)])
 s.save(OUT / "fig10-1.svg")
 
-# ---------------------------------------------------------------- Figura 10.2
+# ---------------------------------------------------------------- Figure 10.2
 s = Svg(440, 290)
 for i, u in enumerate(["User1", "User2", "User3"]):
     x = 15 + i * 145
@@ -198,7 +198,7 @@ for x in (75, 220, 365):
     s.arrow([(x, 190), (x, 142)], kind="tri")
 s.save(OUT / "fig10-2.svg")
 
-# ---------------------------------------------------------------- Figura 10.3
+# ---------------------------------------------------------------- Figure 10.3
 s = Svg(520, 70)
 s.cls(10, 12, 130, "Sistema S", h=40)
 s.cls(195, 12, 130, "Framework F", h=40)
@@ -207,7 +207,7 @@ s.arrow([(140, 32), (194, 32)])
 s.arrow([(325, 32), (379, 32)])
 s.save(OUT / "fig10-3.svg")
 
-# ---------------------------------------------------------------- Figura 11.1
+# ---------------------------------------------------------------- Figure 11.1
 s = Svg(500, 320)
 s.add('<path d="M0,224 C110,238 195,230 240,165 S330,95 500,90" fill="none" '
       'stroke="#9a9a9a" stroke-width="9" stroke-linecap="round" opacity="0.75"/>')
@@ -227,7 +227,7 @@ s.arrow([(190, 285), (375, 285), (375, 176)])
 s.text(285, 278, "«crea»", size=11)
 s.save(OUT / "fig11-1.svg")
 
-# ------------------------------------------- Figura de comentario (DIP)
+# ------------------------------------------- Commentary figure (DIP)
 s = Svg(560, 150)
 s.cls(15, 70, 140, "Application", h=40)
 s.cls(210, 70, 140, "Service", stereo="I", h=40)

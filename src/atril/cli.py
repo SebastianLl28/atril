@@ -1,152 +1,152 @@
-"""Línea de comandos de Atril: nuevo, mapa, exportar, construir, app, imprimir… (ver --help)."""
+"""Command line entry point; argparse texts are user-facing, so they stay in Spanish."""
 
 import argparse
 import re
 import sys
 from pathlib import Path
 
-from . import construir as salida
-from . import paquete
-from .proyecto import RAIZ, Proyecto
+from . import build, bundle, mapping
+from .project import ROOT, Project
 
 
-def _rango(texto):
-    m = re.fullmatch(r"(\d+)(?:-(\d+))?", texto)
+def _range(text):
+    m = re.fullmatch(r"(\d+)(?:-(\d+))?", text)
     if not m:
-        raise argparse.ArgumentTypeError(f"rango inválido: {texto!r} (usa 62-86 o 64)")
-    desde, hasta = int(m[1]), int(m[2] or m[1])
-    if hasta < desde:
-        raise argparse.ArgumentTypeError(f"rango al revés: {texto!r}")
-    return desde, hasta
+        raise argparse.ArgumentTypeError(f"rango inválido: {text!r} (usa 62-86 o 64)")
+    start, end = int(m[1]), int(m[2] or m[1])
+    if end < start:
+        raise argparse.ArgumentTypeError(f"rango al revés: {text!r}")
+    return start, end
 
 
-def _ancla(texto):
-    m = re.fullmatch(r"(\d+)=(\d+)", texto)
+def _anchor(text):
+    m = re.fullmatch(r"(\d+)=(\d+)", text)
     if not m:
-        raise argparse.ArgumentTypeError(f"ancla inválida: {texto!r} (usa REF=ORIG, p. ej. 77=62)")
+        raise argparse.ArgumentTypeError(f"ancla inválida: {text!r} (usa REF=ORIG, p. ej. 77=62)")
     return int(m[1]), int(m[2])
 
 
-def nuevo(args):
-    titulo = args.titulo or Path(args.original).stem
+def cmd_new(args):
+    title = args.titulo or Path(args.original).stem
     try:
-        p = Proyecto.crear(args.slug, titulo, args.original, args.idioma_original,
+        p = Project.create(args.slug, title, args.original, args.idioma_original,
                            args.referencia, args.idioma_referencia)
     except ValueError as e:
         sys.exit(str(e))
-    print(f"Proyecto creado: {p.archivo}")
-    print(f"Original: {len(p.original)} págs · índice con {len(p.original.indice())} entradas")
-    if p.referencia:
-        print(f"Referencia: {len(p.referencia)} págs · mapa calculado")
+    print(f"Proyecto creado: {p.file}")
+    print(f"Original: {len(p.original)} págs · índice con {len(p.original.toc())} entradas")
+    if p.reference:
+        print(f"Referencia: {len(p.reference)} págs · mapa calculado")
 
 
-def proyectos(args):
-    for archivo in sorted(RAIZ.glob("*/libro.json")):
-        p = Proyecto(archivo.parent.name)
-        print(f"{p.slug:30} {p.titulo} · {len(p.datos['partes'])} partes")
+def cmd_projects(args):
+    for file in sorted(ROOT.glob("*/libro.json")):
+        p = Project(file.parent.name)
+        print(f"{p.slug:30} {p.title} · {len(p.data['partes'])} partes")
 
 
-def indice(args):
-    p = Proyecto(args.slug)
-    libro = p.referencia if args.referencia else p.original
-    if libro is None:
+def cmd_toc(args):
+    p = Project(args.slug)
+    book = p.reference if args.referencia else p.original
+    if book is None:
         sys.exit("Este proyecto no tiene PDF de referencia")
-    if not libro.tiene_indice:
+    if not book.has_toc:
         print("(el PDF no trae índice: títulos detectados por tamaño de letra)")
-    for nivel, titulo, pagina in libro.indice():
-        if nivel <= args.nivel:
-            print(f"{pagina:>5}  {'  ' * (nivel - 1)}{titulo}")
+    for level, title, page in book.toc():
+        if level <= args.nivel:
+            print(f"{page:>5}  {'  ' * (level - 1)}{title}")
 
 
-def mapa(args):
-    p = Proyecto(args.slug)
-    if not p.referencia:
+def cmd_map(args):
+    p = Project(args.slug)
+    if not p.reference:
         sys.exit("Este proyecto no tiene PDF de referencia")
     for ref, orig in args.ancla or []:
-        p.datos["mapa"]["anclas"][str(ref)] = orig
+        p.data["mapa"]["anclas"][str(ref)] = orig
     if args.ancla or args.recalcular:
-        p.recalcular_mapa()
-        print(f"Mapa recalculado con anclas {p.anclas}")
+        p.recompute_map()
+        print(f"Mapa recalculado con anclas {p.anchors}")
     if args.referencia:
-        print("Original:", "-".join(map(str, paquete.rango_original(p.mapa, *args.referencia))))
+        print("Original:", "-".join(map(str, mapping.original_range(p.map, *args.referencia))))
     if args.original:
-        r = paquete.rango_referencia(p.mapa, *args.original)
+        r = mapping.reference_range(p.map, *args.original)
         print("Referencia:", "-".join(map(str, r)) if r else "(sin páginas)")
 
 
-def _pdf_extra(texto):
-    ruta, _, rango = texto.rpartition(":")
-    if not ruta:
-        raise argparse.ArgumentTypeError(f"usa RUTA:RANGO, p. ej. apuntes.pdf:3-8 ({texto!r})")
-    return {"pdf": ruta, "paginas": _rango(rango)}
+def _extra_pdf(text):
+    path, _, pages = text.rpartition(":")
+    if not path:
+        raise argparse.ArgumentTypeError(f"usa RUTA:RANGO, p. ej. apuntes.pdf:3-8 ({text!r})")
+    return {"pdf": path, "paginas": _range(pages)}
 
 
-def _leer(ruta):
-    if ruta == "-":
+def _read(path):
+    if path == "-":
         return sys.stdin.read()
-    return Path(ruta).read_text(encoding="utf-8") if ruta else ""
+    return Path(path).read_text(encoding="utf-8") if path else ""
 
 
-def exportar(args):
-    p = Proyecto(args.slug)
-    tarea = {"traducir": args.traducir, "mejorar_lectura": not args.sin_mejorar,
-             "comentarios": args.comentarios, "contexto": args.contexto, "resumen": args.resumen}
-    fuentes = {"notas": _leer(args.notas), "enlaces": args.enlace or [], "pdfs": args.pdf or []}
+def cmd_export(args):
+    p = Project(args.slug)
+    task = {"traducir": args.traducir, "mejorar_lectura": not args.sin_mejorar,
+            "comentarios": args.comentarios, "contexto": args.contexto, "resumen": args.resumen}
+    sources = {"notas": _read(args.notas), "enlaces": args.enlace or [], "pdfs": args.pdf or []}
     try:
-        contexto = paquete.exportar(p, args.parte, args.original, args.referencia,
-                                    _leer(args.instrucciones), args.titulo_parte,
-                                    tarea=tarea, fuentes=fuentes)
+        context = bundle.export(p, args.parte, args.original, args.referencia,
+                                _read(args.instrucciones), args.titulo_parte,
+                                task=task, sources=sources)
     except ValueError as e:
         sys.exit(str(e))
-    print(f"Paquete listo: {contexto}")
-    print(f"En Claude Code: /libro {contexto.parent}")
+    print(f"Paquete listo: {context}")
+    print(f"En Claude Code: /libro {context.parent}")
 
 
-def _paginas(texto):
-    paginas = []
-    for trozo in texto.split(","):
-        desde, hasta = _rango(trozo.strip())
-        paginas += range(desde, hasta + 1)
-    return paginas
+def _pages(text):
+    pages = []
+    for chunk in text.split(","):
+        start, end = _range(chunk.strip())
+        pages += range(start, end + 1)
+    return pages
 
 
-def iniciar(args):
-    html = salida.iniciar(args.carpeta)
+def cmd_init(args):
+    html = build.init(args.carpeta)
     print(f"HTML de trabajo: {html}")
 
 
-def construir(args):
-    r = salida.construir(args.carpeta)
-    print(f"PDF: {r['pdf']} ({r['paginas']} págs)")
-    print(f"2 por hoja: {r['pdf_2x1']}")
-    print("Miniaturas:", *r["miniaturas"], sep="\n  ")
+def cmd_build(args):
+    r = build.build(args.carpeta)
+    print(f"PDF: {r['pdf']} ({r['pages']} págs)")
+    print(f"2 por hoja: {r['pdf_2up']}")
+    print("Miniaturas:", *r["sheets"], sep="\n  ")
 
 
-def ver(args):
-    for ruta in salida.ver(args.carpeta, args.paginas):
-        print(ruta)
+def cmd_view(args):
+    for path in build.view(args.carpeta, args.paginas):
+        print(path)
 
 
-def imprimir(args):
-    from .imprimir import imprimir as mandar
+def cmd_print(args):
+    from .printing import print_pdf
 
-    s = salida.Salida(args.carpeta)
-    pdf = s.pdf_2x1 if args.dos_por_hoja else s.pdf
+    out = build.Output(args.carpeta)
+    pdf = out.pdf_2up if args.dos_por_hoja else out.pdf
     if not pdf.exists():
         sys.exit(f"Falta {pdf}: primero `atril construir {args.carpeta}`")
-    cmd, mensaje = mandar(pdf, args.impresora, args.copias, args.paginas, s.parte, args.simular)
+    cmd, message = print_pdf(pdf, args.impresora, args.copias, args.paginas, out.part,
+                             args.simular)
     print(" ".join(cmd))
-    print(mensaje)
+    print(message)
 
 
-def app(args):
-    from .app import servir  # FastAPI solo se importa para la app
+def cmd_app(args):
+    from .app import serve  # FastAPI is only imported for the app
 
-    servir(args.puerto, abrir=not args.no_abrir)
+    serve(args.puerto, open_browser=not args.no_abrir)
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="atril", description=__doc__)
+    ap = argparse.ArgumentParser(prog="atril", description="Línea de comandos de Atril: nuevo, mapa, exportar, construir, app, imprimir… (ver --help).")
     sub = ap.add_subparsers(required=True)
 
     s = sub.add_parser("nuevo", help="crear el proyecto de un documento (libro, informe…)")
@@ -158,30 +158,30 @@ def main(argv=None):
     s.add_argument("--titulo")
     s.add_argument("--idioma-original", "--idioma", dest="idioma_original", default="en")
     s.add_argument("--idioma-referencia", default="es")
-    s.set_defaults(fn=nuevo)
+    s.set_defaults(fn=cmd_new)
 
     s = sub.add_parser("proyectos", help="listar proyectos")
-    s.set_defaults(fn=proyectos)
+    s.set_defaults(fn=cmd_projects)
 
     s = sub.add_parser("indice", help="índice del PDF original (o detectado si no trae)")
     s.add_argument("slug")
     s.add_argument("--nivel", type=int, default=2)
     s.add_argument("--referencia", action="store_true", help="índice de la referencia")
-    s.set_defaults(fn=indice)
+    s.set_defaults(fn=cmd_toc)
 
     s = sub.add_parser("mapa", help="consultar o corregir el mapa de páginas")
     s.add_argument("slug")
-    s.add_argument("--ancla", type=_ancla, action="append", help="REF=ORIG, se puede repetir")
+    s.add_argument("--ancla", type=_anchor, action="append", help="REF=ORIG, se puede repetir")
     s.add_argument("--recalcular", action="store_true")
-    s.add_argument("--referencia", type=_rango, help="rango de la referencia a traducir")
-    s.add_argument("--original", type=_rango, help="rango del original a traducir")
-    s.set_defaults(fn=mapa)
+    s.add_argument("--referencia", type=_range, help="rango de la referencia a traducir")
+    s.add_argument("--original", type=_range, help="rango del original a traducir")
+    s.set_defaults(fn=cmd_map)
 
     s = sub.add_parser("exportar", help="generar el paquete de una parte y decir qué hacer")
     s.add_argument("slug")
     s.add_argument("parte", help="id de la parte, p. ej. parte-03-solid")
-    s.add_argument("--original", type=_rango, help="páginas del documento")
-    s.add_argument("--referencia", type=_rango, help="páginas de la otra versión")
+    s.add_argument("--original", type=_range, help="páginas del documento")
+    s.add_argument("--referencia", type=_range, help="páginas de la otra versión")
     s.add_argument("--titulo-parte")
     g = s.add_argument_group("tarea (por defecto: mantener el idioma y mejorar la lectura)")
     g.add_argument("--traducir", metavar="IDIOMA", help="traducir a este idioma, p. ej. es")
@@ -194,22 +194,22 @@ def main(argv=None):
     g.add_argument("--instrucciones", help="archivo de texto, o - para leer de stdin")
     g.add_argument("--notas", help="archivo con notas o contexto pegado")
     g.add_argument("--enlace", action="append", help="URL de apoyo; se puede repetir")
-    g.add_argument("--pdf", type=_pdf_extra, action="append", metavar="RUTA:RANGO",
+    g.add_argument("--pdf", type=_extra_pdf, action="append", metavar="RUTA:RANGO",
                    help="páginas de otro PDF como apoyo, p. ej. apuntes.pdf:3-8; se repite")
-    s.set_defaults(fn=exportar)
+    s.set_defaults(fn=cmd_export)
 
     s = sub.add_parser("iniciar", help="crear salida/ con la plantilla HTML de una parte")
     s.add_argument("carpeta", help="carpeta de la parte (la que tiene contexto.md)")
-    s.set_defaults(fn=iniciar)
+    s.set_defaults(fn=cmd_init)
 
     s = sub.add_parser("construir", help="HTML → PDF, 2 por hoja y miniaturas de revisión")
     s.add_argument("carpeta", help="carpeta de la parte (la que tiene contexto.md)")
-    s.set_defaults(fn=construir)
+    s.set_defaults(fn=cmd_build)
 
     s = sub.add_parser("ver", help="renderizar páginas del PDF construido para revisarlas")
     s.add_argument("carpeta")
-    s.add_argument("paginas", type=_paginas, help="p. ej. 5 o 3,7-9")
-    s.set_defaults(fn=ver)
+    s.add_argument("paginas", type=_pages, help="p. ej. 5 o 3,7-9")
+    s.set_defaults(fn=cmd_view)
 
     s = sub.add_parser("imprimir", help="mandar el PDF de una parte a la impresora (lp)")
     s.add_argument("carpeta", help="carpeta de la parte")
@@ -218,12 +218,12 @@ def main(argv=None):
     s.add_argument("--paginas", help="p. ej. 1-4,7")
     s.add_argument("--impresora", help="por defecto, la predeterminada de CUPS o ATRIL_IMPRESORA")
     s.add_argument("--simular", action="store_true", help="mostrar el comando sin imprimir")
-    s.set_defaults(fn=imprimir)
+    s.set_defaults(fn=cmd_print)
 
     s = sub.add_parser("app", help="abrir la app visual en el navegador")
     s.add_argument("--puerto", type=int, default=8765)
     s.add_argument("--no-abrir", action="store_true", help="no abrir el navegador")
-    s.set_defaults(fn=app)
+    s.set_defaults(fn=cmd_app)
 
     args = ap.parse_args(argv)
     args.fn(args)
