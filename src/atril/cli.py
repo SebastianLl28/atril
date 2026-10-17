@@ -1,4 +1,4 @@
-"""Línea de comandos: nuevo | proyectos | indice | mapa | exportar | iniciar | construir | ver | app."""
+"""Línea de comandos de Atril: nuevo, mapa, exportar, construir, app, ocr, imprimir… (ver --help)."""
 
 import argparse
 import re
@@ -28,6 +28,12 @@ def _ancla(texto):
 
 
 def nuevo(args):
+    from .ocr import necesita_ocr
+
+    for pdf in filter(None, (args.original, args.referencia)):
+        if necesita_ocr(pdf):
+            sys.exit(f"{pdf} no tiene capa de texto. Pásale OCR primero:\n"
+                     f"  uv run atril ocr \"{pdf}\"\ny usa la copia «(OCR)» que genera.")
     titulo = args.titulo or Path(args.original).stem
     p = Proyecto.crear(args.slug, titulo, args.original, args.idioma_original,
                        args.referencia, args.idioma_referencia)
@@ -45,7 +51,12 @@ def proyectos(args):
 
 def indice(args):
     p = Proyecto(args.slug)
-    for nivel, titulo, pagina in p.original.indice():
+    libro = p.referencia if args.referencia else p.original
+    if libro is None:
+        sys.exit("Este proyecto no tiene PDF de referencia")
+    if not libro.tiene_indice:
+        print("(el PDF no trae índice: títulos detectados por tamaño de letra)")
+    for nivel, titulo, pagina in libro.indice():
         if nivel <= args.nivel:
             print(f"{pagina:>5}  {'  ' * (nivel - 1)}{titulo}")
 
@@ -104,6 +115,26 @@ def ver(args):
         print(ruta)
 
 
+def ocr(args):
+    from . import ocr as modulo
+
+    print(f"Pasando OCR ({args.idiomas})… puede tardar varios minutos")
+    destino = modulo.ocr(args.pdf, args.idiomas, args.destino, args.forzar)
+    print(f"Listo: {destino}")
+
+
+def imprimir(args):
+    from .imprimir import imprimir as mandar
+
+    s = salida.Salida(args.carpeta)
+    pdf = s.pdf_2x1 if args.dos_por_hoja else s.pdf
+    if not pdf.exists():
+        sys.exit(f"Falta {pdf}: primero `atril construir {args.carpeta}`")
+    cmd, mensaje = mandar(pdf, args.impresora, args.copias, args.paginas, s.parte, args.simular)
+    print(" ".join(cmd))
+    print(mensaje)
+
+
 def app(args):
     from .app import servir  # FastAPI solo se importa para la app
 
@@ -126,9 +157,10 @@ def main(argv=None):
     s = sub.add_parser("proyectos", help="listar proyectos")
     s.set_defaults(fn=proyectos)
 
-    s = sub.add_parser("indice", help="índice del PDF original")
+    s = sub.add_parser("indice", help="índice del PDF original (o detectado si no trae)")
     s.add_argument("slug")
     s.add_argument("--nivel", type=int, default=2)
+    s.add_argument("--referencia", action="store_true", help="índice de la referencia")
     s.set_defaults(fn=indice)
 
     s = sub.add_parser("mapa", help="consultar o corregir el mapa de páginas")
@@ -161,6 +193,22 @@ def main(argv=None):
     s.add_argument("carpeta")
     s.add_argument("paginas", type=_paginas, help="p. ej. 5 o 3,7-9")
     s.set_defaults(fn=ver)
+
+    s = sub.add_parser("ocr", help="crear una copia del PDF con capa de texto (ocrmypdf)")
+    s.add_argument("pdf")
+    s.add_argument("--idiomas", default="spa+eng", help="idiomas de tesseract, p. ej. spa+eng")
+    s.add_argument("--destino", help="por defecto, «<nombre> (OCR).pdf» al lado del original")
+    s.add_argument("--forzar", action="store_true", help="rehacer el OCR aunque haya texto")
+    s.set_defaults(fn=ocr)
+
+    s = sub.add_parser("imprimir", help="mandar el PDF de una parte a la impresora (lp)")
+    s.add_argument("carpeta", help="carpeta de la parte")
+    s.add_argument("--2-por-hoja", dest="dos_por_hoja", action="store_true")
+    s.add_argument("--copias", type=int, default=1)
+    s.add_argument("--paginas", help="p. ej. 1-4,7")
+    s.add_argument("--impresora", help="por defecto, la predeterminada de CUPS o ATRIL_IMPRESORA")
+    s.add_argument("--simular", action="store_true", help="mostrar el comando sin imprimir")
+    s.set_defaults(fn=imprimir)
 
     s = sub.add_parser("app", help="abrir la app visual en el navegador")
     s.add_argument("--puerto", type=int, default=8765)

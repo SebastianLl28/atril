@@ -186,12 +186,22 @@ dar las mismas 32 páginas. Eso confirma que las fuentes y la plantilla funciona
 **Verificación:** exportar la Parte III desde la app da el mismo paquete que la línea de
 comandos: `contexto.md` y las 20 figuras idénticos (`tests/test_app.py`).
 
-### Fase 4 · Mejoras, cuando hagan falta
-- OCR automático para PDFs sin capa de texto (`uv tool install ocrmypdf`; tesseract con spa y
-  eng ya está instalado)
-- Detectar títulos de capítulo en PDFs sin índice, por tamaño de letra
-- Botón para imprimir con `lp` en la Epson L3250
-- Historial de partes en la app, con su estado y enlace al PDF
+### Fase 4 · Mejoras ✅
+- [x] OCR para PDFs sin capa de texto (`src/atril/ocr.py`, `atril ocr <pdf>`), con ocrmypdf
+      (`uv tool install ocrmypdf`) y tesseract spa+eng. Crea «<nombre> (OCR).pdf» al lado del
+      original. `atril nuevo` se niega a usar un PDF sin texto y dice cómo pasarle OCR. La app
+      marca esos PDFs con «⚠ sin texto» y ofrece un botón para pasarles OCR.
+- [x] Títulos detectados por tamaño de letra en PDFs sin índice (`Libro.indice_detectado`).
+      Si el libro marca los capítulos con un número muy grande, como el escaneo en español,
+      esas páginas son capítulos y el resto, secciones. `Libro.indice()` lo usa cuando no hay
+      TOC; `atril indice --referencia` lo muestra. En el PDF en inglés acierta más del 95 % de
+      los capítulos del índice real.
+- [x] Imprimir con `lp` en la Epson L3250 (`src/atril/imprimir.py`, `atril imprimir <carpeta>`
+      con `--2-por-hoja`, `--copias`, `--paginas` y `--simular`). Usa la impresora
+      predeterminada de CUPS, u otra con `ATRIL_IMPRESORA`. En la app hay un botón Imprimir
+      por parte. Los tests usan un `lp` falso: nunca imprimen.
+- [x] Historial de partes en la app: título, páginas, fecha, estado y enlaces a los PDFs
+      construidos (carta y 2 por hoja), más Elegir para volver a seleccionar esas páginas.
 
 ## Referencias
 - Caso real: `referencia/solid/` y `~/Documents/books/Arquitectura Limpia - SOLID (español revisado).pdf`

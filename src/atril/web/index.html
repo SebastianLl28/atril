@@ -26,6 +26,7 @@
     <section>
       <h2>Índice</h2>
       <div class="pestanas" id="pestanas-indice"></div>
+      <p id="indice-nota" class="nota" hidden>Este PDF no trae índice: títulos detectados por tamaño de letra.</p>
       <ol id="indice"></ol>
     </section>
 
@@ -64,7 +65,11 @@
         <button type="submit" class="principal">Exportar</button>
       </form>
       <div id="exportado" class="exportado" hidden></div>
-      <div id="partes"></div>
+    </section>
+
+    <section>
+      <h2>Historial de partes</h2>
+      <ul id="partes" class="historial"></ul>
     </section>
   </aside>
 
@@ -87,10 +92,30 @@
     <label>Idioma del original <input id="n-idioma-original" value="en" size="4"></label>
     <label>PDF de referencia (opcional) <select id="n-referencia"></select></label>
     <label>Idioma de la referencia <input id="n-idioma-referencia" value="es" size="4"></label>
+    <div id="n-aviso-ocr" class="aviso" hidden>
+      <span id="n-aviso-texto"></span>
+      <div class="botones"><button type="button" id="n-ocr">Pasar OCR ahora</button></div>
+    </div>
     <p class="nota">Con referencia, se calcula el mapa de páginas: tarda unos segundos.</p>
     <div class="botones">
       <button type="button" id="n-cancelar">Cancelar</button>
       <button type="submit" class="principal">Crear</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-imprimir">
+  <form id="form-imprimir" method="dialog">
+    <h2>Imprimir <span id="i-parte"></span></h2>
+    <label>PDF
+      <select id="i-tipo"><option value="carta">Carta (1 página por hoja)</option><option value="2x1">2 por hoja</option></select>
+    </label>
+    <label>Copias <input id="i-copias" type="number" min="1" max="20" value="1" size="4"></label>
+    <label>Páginas (opcional) <input id="i-paginas" placeholder="todas, o p. ej. 1-4,7" pattern="[0-9,\-]*"></label>
+    <p class="nota">Impresora: <b id="i-impresora">predeterminada</b></p>
+    <div class="botones">
+      <button type="button" id="i-cancelar">Cancelar</button>
+      <button type="submit" class="principal">Imprimir</button>
     </div>
   </form>
 </dialog>

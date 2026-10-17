@@ -36,13 +36,22 @@ uv run atril construir ~/Documents/books/proyectos/arquitectura-limpia/parte-03-
 uv run atril ver       ~/Documents/books/proyectos/arquitectura-limpia/parte-03-solid 5,7-8
 ```
 
+Otros comandos:
+
+```fish
+uv run atril ocr "~/Documents/books/math/2.geometria.pdf"   # copia con capa de texto
+uv run atril indice arquitectura-limpia --referencia        # índice detectado si el PDF no trae
+uv run atril imprimir <carpeta-de-la-parte> --2-por-hoja --simular   # quita --simular para imprimir
+```
+
 Los proyectos se guardan en `~/Documents/books/proyectos/<libro>/`. Para cambiar la carpeta,
 usa la variable `ATRIL_PROYECTOS`.
 
 ## Estructura
 
 - `src/atril/`: núcleo (`pdf`, `limpieza`, `mapa`, `paquete`, `proyecto`, `cli`) y salida
-  (`construir`, `svg`, `plantilla/`) y la app (`app`, `miniaturas`, `web/`)
+  (`construir`, `svg`, `plantilla/`) la app (`app`, `miniaturas`, `web/`), `ocr` e
+  `imprimir`
 - `.claude/skills/libro/`: la skill `/libro`
 - `referencia/solid/`: el caso SOLID hecho a mano (HTML, CSS de impresión, SVG); es el modelo
   de estilo de la skill y la prueba de regresión de la plantilla

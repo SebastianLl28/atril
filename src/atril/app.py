@@ -10,11 +10,12 @@ import unicodedata
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import miniaturas, paquete
+from . import imprimir, miniaturas, ocr, paquete
+from .construir import Salida
 from .proyecto import RAIZ, Proyecto
 
 LIBROS = Path(os.environ.get("ATRIL_LIBROS", "~/Documents/books")).expanduser()
@@ -44,6 +45,18 @@ class Ancla(BaseModel):
     original: int
 
 
+class Ocr(BaseModel):
+    pdf: str
+    idiomas: str = "spa+eng"
+
+
+class Impresion(BaseModel):
+    tipo: str = "carta"  # carta | 2x1
+    copias: int = 1
+    paginas: str | None = None
+    simular: bool = False
+
+
 class Exportacion(BaseModel):
     parte: str
     original: tuple[int, int] | None = None
@@ -58,6 +71,7 @@ def crear_app(raiz=None, libros=None, cache=None):
     libros = Path(libros or LIBROS)
     app = FastAPI(title="Atril")
     abiertos = {}  # slug → Proyecto, con sus PDFs y textos ya cargados
+    sin_texto = {}  # (ruta, mtime) → bool, para no volver a medir cada PDF
     candado = threading.RLock()  # PyMuPDF no es seguro entre hilos
 
     def proyecto(slug):
@@ -85,21 +99,68 @@ def crear_app(raiz=None, libros=None, cache=None):
         rect = lib.doc[0].rect
         return {"pdf": str(lib.ruta), "nombre": unicodedata.normalize("NFC", lib.ruta.name),
                 "idioma": p.datos[lado]["idioma"], "paginas": len(lib),
-                "proporcion": rect.height / rect.width, "indice": lib.indice()}
+                "proporcion": rect.height / rect.width, "indice": lib.indice(),
+                "indice_detectado": not lib.tiene_indice}
+
+    def pdf_de_parte(p, parte, tipo):
+        if not PARTE.fullmatch(parte):
+            raise HTTPException(422, "Id de parte inválido")
+        try:
+            s = Salida(p.dir / parte)
+        except FileNotFoundError:
+            return None
+        return {"carta": s.pdf, "2x1": s.pdf_2x1}.get(tipo)
+
+    def partes(p):
+        """Historial: las partes de libro.json, con qué PDFs construidos existen."""
+        lista = []
+        for x in p.datos["partes"]:
+            pdfs = {t: bool((r := pdf_de_parte(p, x["id"], t)) and r.exists())
+                    for t in ("carta", "2x1")}
+            lista.append({**x, "pdfs": pdfs})
+        return lista
 
     def detalle(p):
         return {"slug": p.slug, "titulo": p.titulo, "dir": str(p.dir),
                 "original": resumen_lado(p, "original"),
                 "referencia": resumen_lado(p, "referencia"),
-                "mapa": p.mapa, "anclas": p.anclas, "partes": p.datos["partes"]}
+                "mapa": p.mapa, "anclas": p.anclas, "partes": partes(p)}
+
+    def falta_texto(ruta):
+        clave = (str(ruta), ruta.stat().st_mtime_ns)
+        if clave not in sin_texto:
+            try:
+                sin_texto[clave] = ocr.necesita_ocr(ruta)
+            except Exception:  # PDF dañado o cifrado: que lo diga al abrirlo
+                sin_texto[clave] = False
+        return sin_texto[clave]
 
     @app.get("/api/pdfs")
     def pdfs():
         """PDFs disponibles en la carpeta de libros (sin los generados en los proyectos)."""
         encontrados = [f for f in libros.rglob("*.pdf") if raiz not in f.parents]
         return [{"ruta": str(f),
-                 "nombre": unicodedata.normalize("NFC", str(f.relative_to(libros)))}
+                 "nombre": unicodedata.normalize("NFC", str(f.relative_to(libros))),
+                 "sin_texto": falta_texto(f)}
                 for f in sorted(encontrados, key=lambda f: str(f).lower())]
+
+    @app.post("/api/ocr")
+    def pasar_ocr(datos: Ocr):
+        """Copia con capa de texto, «<nombre> (OCR).pdf». Tarda: va fuera del candado."""
+        ruta = Path(datos.pdf)
+        if not ruta.is_file() or libros not in ruta.resolve().parents:
+            raise HTTPException(422, f"El PDF tiene que estar en {libros}")
+        try:
+            destino = ocr.ocr(ruta, datos.idiomas)
+        except RuntimeError as e:
+            raise HTTPException(500, str(e))
+        return {"ruta": str(destino)}
+
+    @app.get("/api/impresoras")
+    def ver_impresoras():
+        nombres, predeterminada = imprimir.impresoras()
+        return {"impresoras": nombres,
+                "predeterminada": os.environ.get("ATRIL_IMPRESORA") or predeterminada}
 
     @app.get("/api/proyectos")
     def proyectos():
@@ -195,7 +256,27 @@ def crear_app(raiz=None, libros=None, cache=None):
         figuras = len(list((contexto.parent / "figuras").iterdir()))
         return {"contexto": str(contexto), "carpeta": str(contexto.parent),
                 "comando": f"/libro {contexto.parent}", "figuras": figuras,
-                "caracteres": len(texto), "partes": p.datos["partes"]}
+                "caracteres": len(texto), "partes": partes(p)}
+
+    @app.get("/api/proyectos/{slug}/partes/{parte}/pdf")
+    def ver_pdf(slug: str, parte: str, tipo: str = "carta"):
+        ruta = pdf_de_parte(proyecto(slug), parte, tipo)
+        if not ruta or not ruta.exists():
+            raise HTTPException(404, "Esa parte todavía no tiene ese PDF construido")
+        return FileResponse(ruta, media_type="application/pdf",
+                            content_disposition_type="inline")
+
+    @app.post("/api/proyectos/{slug}/partes/{parte}/imprimir")
+    def mandar_a_imprimir(slug: str, parte: str, datos: Impresion):
+        ruta = pdf_de_parte(proyecto(slug), parte, datos.tipo)
+        if not ruta or not ruta.exists():
+            raise HTTPException(404, "Esa parte todavía no tiene ese PDF construido")
+        try:
+            cmd, mensaje = imprimir.imprimir(ruta, copias=datos.copias, paginas=datos.paginas,
+                                             titulo=parte, simular=datos.simular)
+        except (ValueError, RuntimeError) as e:
+            raise HTTPException(422, str(e))
+        return {"comando": cmd, "mensaje": mensaje}
 
     app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
     return app

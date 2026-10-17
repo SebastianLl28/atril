@@ -22,6 +22,7 @@ uv run pytest                                  # todos los tests
 uv run pytest tests/test_parte_iii.py::test_salen_las_20_figuras   # un test
 uv run atril --help                            # CLI: nuevo | proyectos | indice | mapa | exportar
                                                #      iniciar | construir | ver (salida a PDF) | app
+                                               #      ocr | imprimir (--simular: no imprime)
 ```
 
 `tests/test_parte_iii.py` usa los PDFs reales de `~/Documents/books` (Arquitectura Limpia) y
@@ -78,6 +79,13 @@ Flujo: `pdf.Libro` → `limpieza.limpiar` → `paquete.exportar` → `contexto.m
   PyMuPDF con un candado, porque no es seguro entre hilos. El frontend es HTML + JS sin build.
   `web/app.js` repite en JS `rango_original` y `rango_referencia` de `mapa.py`: si cambian,
   hay que cambiar los dos. Los textos de página se cachean en `Libro.textos`.
+- **`ocr.py`**: `necesita_ocr` mira una muestra de páginas y `ocr` llama a ocrmypdf
+  (`uv tool install ocrmypdf`). **`imprimir.py`**: `lp` a la impresora predeterminada (Epson
+  L3250) o a `ATRIL_IMPRESORA`. **Nunca imprimir de verdad en pruebas**: usar `--simular` o el
+  `lp` falso de `tests/test_fase4.py`.
+- **Índice detectado** (`Libro.indice_detectado`): si el PDF no trae TOC, salen títulos por
+  tamaño relativo al cuerpo. Las páginas con número de capítulo muy grande (≥ 2,3×) son
+  capítulos.
 - **`.claude/skills/libro/SKILL.md`**: la skill `/libro`, con los pasos y las reglas de estilo
   sacadas del caso SOLID.
 

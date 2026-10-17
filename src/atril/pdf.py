@@ -16,6 +16,10 @@ ESPACIOS = re.compile(r"[ \t   ]+")
 # Una imagen que cubre casi toda la página es un escaneo, no una figura.
 AREA_ESCANEO = 0.8
 
+# Detección de títulos en PDFs sin índice, en múltiplos del tamaño del cuerpo.
+TITULO, SUBTITULO, NUMERO_CAPITULO = 1.75, 1.25, 2.3
+SOLO_NUMERO = re.compile(r"^(\d+|[IVXLC]+)$")
+
 
 @dataclass
 class Elemento:
@@ -66,8 +70,62 @@ class Libro:
         return self.doc.page_count
 
     def indice(self):
-        """Entradas del índice del PDF como (nivel, título, página)."""
-        return [(nivel, titulo, pagina) for nivel, titulo, pagina, *_ in self.doc.get_toc()]
+        """Entradas del índice del PDF como (nivel, título, página).
+
+        Si el PDF no trae índice, se usa el detectado por tamaño de letra.
+        """
+        toc = [(nivel, titulo, pagina) for nivel, titulo, pagina, *_ in self.doc.get_toc()]
+        return toc or self.indice_detectado
+
+    @property
+    def tiene_indice(self):
+        return bool(self.doc.get_toc())
+
+    @cached_property
+    def indice_detectado(self):
+        """Títulos por tamaño de letra relativo al cuerpo.
+
+        Si el libro marca los capítulos con un número muy grande (como los escaneos con OCR,
+        donde las secciones son casi tan grandes como los títulos), las páginas con ese número
+        son capítulos y el resto de títulos, secciones. Si no, los títulos son capítulos y los
+        subtítulos en negrita, secciones.
+        """
+        cuerpo = self.tamano_cuerpo
+        paginas = []  # (página, [(tamaño, negrita, y, texto)])
+        for n, page in enumerate(self.doc, start=1):
+            bloques = []
+            for b in page.get_text("dict", flags=pymupdf.TEXTFLAGS_TEXT)["blocks"]:
+                spans = [s for l in b["lines"] for s in l["spans"] if s["text"].strip()]
+                if not spans:
+                    continue
+                tamano = max(s["size"] for s in spans) / cuerpo
+                if tamano < SUBTITULO:
+                    continue
+                # Los fragmentos de una línea van pegados: las versalitas («C» + «ONTENTS»)
+                # son fragmentos distintos de la misma palabra.
+                texto = _normalizar(" ".join("".join(s["text"] for s in l["spans"])
+                                             for l in b["lines"]))
+                if len(texto) <= 120:
+                    bloques.append((tamano, all(_es_negrita(s) for s in spans), b["bbox"][1], texto))
+            paginas.append((n, sorted(bloques, key=lambda b: b[2])))
+
+        con_numero = any(t >= NUMERO_CAPITULO for _, bs in paginas for t, *_ in bs)
+        entradas = []
+        for n, bloques in paginas:
+            titulos = [b for b in bloques if b[0] >= TITULO]
+            if con_numero:
+                if any(t >= NUMERO_CAPITULO for t, *_ in titulos):
+                    texto = " ".join(b[3] for b in titulos)
+                    if SOLO_NUMERO.match(texto):  # el título quedó por debajo del umbral
+                        texto += " " + " ".join(b[3] for b in bloques if b not in titulos)[:100]
+                    entradas.append((1, texto.strip(), n))
+                else:
+                    entradas += [(2, b[3], n) for b in titulos]
+            else:
+                entradas += [(1, b[3], n) for b in titulos]
+                entradas += [(2, b[3], n) for b in bloques if b[0] < TITULO and b[1]]
+        # Sin letras son números de página o fechas sueltas, no títulos.
+        return [e for e in entradas if any(c.isalpha() for c in e[1])]
 
     def texto_plano(self, numero):
         return self.textos[numero - 1]

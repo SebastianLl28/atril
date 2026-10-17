@@ -26,6 +26,8 @@ const estado = {
   indiceLado: "original",
   parteEditada: false,
   vista: null,        // { lado, n } en la vista grande
+  pdfs: [],           // PDFs de ~/Documents/books, para el diálogo de proyecto nuevo
+  imprimir: null,     // parte que se va a imprimir
 };
 
 // ---------------------------------------------------------------- utilidades
@@ -302,6 +304,7 @@ function dibujarIndice() {
   if (!lados.includes(estado.indiceLado)) estado.indiceLado = lados[0] || "original";
   const info = estado.p[estado.indiceLado];
   const entradas = info ? info.indice : [];
+  $("#indice-nota").hidden = !(info && info.indice_detectado && entradas.length);
   $("#indice").innerHTML = entradas.length ? entradas.map(([nivel, titulo, pag], i) =>
     `<li class="n${nivel}" data-i="${i}" style="padding-left:${(nivel - 1) * 0.9 + 0.3}em" title="${esc(titulo)}">` +
     `<span>${esc(titulo)}</span><span class="pag">${pag}</span></li>`).join("")
@@ -346,9 +349,63 @@ function irSiguiente(lado) {
 
 // ---------------------------------------------------------------- exportar
 function dibujarPartes() {
-  const partes = estado.p.partes;
-  $("#partes").innerHTML = partes.length ? "Partes del proyecto:<ul>" + partes.map((x, i) =>
-    `<li data-i="${i}" title="Clic para volver a elegir estas páginas">${esc(x.id)} · p. ${x.original} · ${x.estado}</li>`).join("") + "</ul>" : "";
+  const p = estado.p;
+  const base = (id) => `/api/proyectos/${p.slug}/partes/${encodeURIComponent(id)}/pdf`;
+  $("#partes").innerHTML = p.partes.length ? [...p.partes].reverse().map((x) => {
+    const i = p.partes.indexOf(x);
+    const enlaces = [
+      x.pdfs.carta ? `<a href="${base(x.id)}?tipo=carta" target="_blank">PDF</a>` : "",
+      x.pdfs["2x1"] ? `<a href="${base(x.id)}?tipo=2x1" target="_blank">2 por hoja</a>` : "",
+      x.pdfs.carta ? `<button type="button" data-imprimir="${i}">Imprimir</button>` : "",
+    ].join("");
+    return `<li><b>${esc(x.titulo || x.id)}</b>` +
+      `<div class="meta">${esc(x.id)} · p. ${x.original}${x.referencia ? ` ↔ ${x.referencia}` : ""}` +
+      `${x.fecha ? ` · ${x.fecha}` : ""}${x.paginas_pdf ? ` · ${x.paginas_pdf} págs de PDF` : ""}</div>` +
+      `<span class="estado ${x.estado}">${x.estado}</span>` +
+      `<div class="botones"><button type="button" data-elegir="${i}" title="Volver a elegir estas páginas">Elegir</button>${enlaces}</div></li>`;
+  }).join("") : '<li class="nota">Todavía no hay partes exportadas.</li>';
+}
+
+async function abrirImpresion(i) {
+  const x = estado.p.partes[i];
+  estado.imprimir = x;
+  $("#i-parte").textContent = x.titulo || x.id;
+  $("#i-tipo").value = "carta";
+  $("#i-tipo").querySelector('[value="2x1"]').disabled = !x.pdfs["2x1"];
+  $("#i-copias").value = 1;
+  $("#i-paginas").value = "";
+  $("#dlg-imprimir").showModal();
+  try {
+    const imp = await api("/api/impresoras");
+    $("#i-impresora").textContent = imp.predeterminada || "predeterminada del sistema";
+  } catch { $("#i-impresora").textContent = "predeterminada del sistema"; }
+}
+
+async function mandarImpresion(ev) {
+  ev.preventDefault();
+  const x = estado.imprimir;
+  const cuerpo = { tipo: $("#i-tipo").value, copias: +$("#i-copias").value || 1,
+                   paginas: $("#i-paginas").value.trim() || null };
+  const r = await ocupado("Enviando a la impresora…", () =>
+    api(`/api/proyectos/${estado.p.slug}/partes/${encodeURIComponent(x.id)}/imprimir`, { method: "POST", body: cuerpo }));
+  $("#dlg-imprimir").close();
+  avisar(r.mensaje || "Enviado a la impresora");
+}
+
+function elegirParte(i) {
+  const x = estado.p.partes[i];
+  const r = x.original.split("-").map(Number);
+  elegirRango("original", [r[0], r[1] ?? r[0]]);
+  if (x.referencia && estado.p.referencia) {
+    const q = x.referencia.split("-").map(Number);
+    estado.sel.referencia = [q[0], q[1] ?? q[0]];
+    estado.ajustado = !iguales(estado.sel.referencia, deducido("original", estado.sel.original));
+    irA("referencia", q[0], "start");
+  }
+  $("#parte").value = x.id;
+  $("#titulo-parte").value = x.titulo || "";
+  estado.parteEditada = true;
+  actualizar();
 }
 
 async function exportar(ev) {
@@ -387,11 +444,44 @@ function abrirVista(lado, n) {
 
 // ---------------------------------------------------------------- nuevo proyecto
 async function dialogoNuevo() {
-  const pdfs = await api("/api/pdfs");
-  const opciones = pdfs.map((f) => `<option value="${esc(f.ruta)}">${esc(f.nombre)}</option>`).join("");
+  $("#dlg-nuevo").showModal();
+  await cargarPdfs();
+}
+
+async function cargarPdfs(elegir) {
+  avisar("Revisando los PDFs…");
+  estado.pdfs = await api("/api/pdfs");
+  avisar("");
+  const opciones = estado.pdfs.map((f) =>
+    `<option value="${esc(f.ruta)}">${esc(f.nombre)}${f.sin_texto ? " ⚠ sin texto" : ""}</option>`).join("");
+  const antes = { o: $("#n-original").value, r: $("#n-referencia").value };
   $("#n-original").innerHTML = opciones;
   $("#n-referencia").innerHTML = '<option value="">— ninguna —</option>' + opciones;
-  $("#dlg-nuevo").showModal();
+  if (antes.o) $("#n-original").value = antes.o;
+  if (antes.r) $("#n-referencia").value = antes.r;
+  if (elegir) $(`#${elegir.campo}`).value = elegir.ruta;
+  revisarOcr();
+}
+
+function revisarOcr() {
+  const sinTexto = ["n-original", "n-referencia"]
+    .map((id) => ({ id, f: estado.pdfs.find((x) => x.ruta === $(`#${id}`).value) }))
+    .filter(({ f }) => f && f.sin_texto);
+  const aviso = $("#n-aviso-ocr");
+  aviso.hidden = !sinTexto.length;
+  if (!sinTexto.length) return;
+  const { id, f } = sinTexto[0];
+  aviso.dataset.campo = id;
+  aviso.dataset.ruta = f.ruta;
+  $("#n-aviso-texto").textContent = `«${f.nombre}» no tiene capa de texto (es un escaneo). ` +
+    "Sin OCR no se puede extraer el texto ni emparejar páginas. Se crea una copia «(OCR)» al lado del original; puede tardar varios minutos.";
+}
+
+async function pasarOcr() {
+  const aviso = $("#n-aviso-ocr");
+  const r = await ocupado("Pasando OCR… (puede tardar varios minutos)",
+    () => api("/api/ocr", { method: "POST", body: { pdf: aviso.dataset.ruta } }));
+  await cargarPdfs({ campo: aviso.dataset.campo, ruta: r.ruta });
 }
 
 async function crearProyecto(ev) {
@@ -415,7 +505,10 @@ $("#proyecto").addEventListener("change", (e) => abrir(e.target.value));
 $("#btn-nuevo").addEventListener("click", dialogoNuevo);
 $("#n-cancelar").addEventListener("click", () => $("#dlg-nuevo").close());
 $("#form-nuevo").addEventListener("submit", crearProyecto);
+$("#n-referencia").addEventListener("change", revisarOcr);
+$("#n-ocr").addEventListener("click", pasarOcr);
 $("#n-original").addEventListener("change", (e) => {
+  revisarOcr();
   if (!$("#n-titulo").value) $("#n-titulo").value = e.target.selectedOptions[0].text.replace(/\.pdf$/i, "").split("/").pop();
   if (!$("#n-slug").value) $("#n-slug").value = slug($("#n-titulo").value);
 });
@@ -484,22 +577,13 @@ $("#exportado").addEventListener("click", async (e) => {
   e.target.textContent = "¡Copiado!";
 });
 $("#partes").addEventListener("click", (e) => {
-  const li = e.target.closest("li[data-i]");
-  if (!li) return;
-  const x = estado.p.partes[+li.dataset.i];
-  const r = x.original.split("-").map(Number);
-  elegirRango("original", [r[0], r[1] ?? r[0]]);
-  if (x.referencia && estado.p.referencia) {
-    const q = x.referencia.split("-").map(Number);
-    estado.sel.referencia = [q[0], q[1] ?? q[0]];
-    estado.ajustado = !iguales(estado.sel.referencia, deducido("original", estado.sel.original));
-    irA("referencia", q[0], "start");
-  }
-  $("#parte").value = x.id;
-  $("#titulo-parte").value = x.titulo || "";
-  estado.parteEditada = true;
-  actualizar();
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.elegir !== undefined) elegirParte(+b.dataset.elegir);
+  if (b.dataset.imprimir !== undefined) abrirImpresion(+b.dataset.imprimir);
 });
+$("#form-imprimir").addEventListener("submit", mandarImpresion);
+$("#i-cancelar").addEventListener("click", () => $("#dlg-imprimir").close());
 
 $("#dlg-vista").addEventListener("click", (e) => {
   const paso = e.target.dataset?.paso;

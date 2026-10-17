@@ -54,8 +54,14 @@ aside input, aside select, aside textarea { border: 1px solid var(--borde); bord
 #anclas span button { border: 0; padding: 0 .3em; color: inherit; background: none; }
 .exportado { margin-top: .8em; background: #eaf5ea; border: 1px solid #9ccc9c; border-radius: 6px; padding: .5em .6em; font-size: .9em; word-break: break-all; }
 .exportado code { display: block; background: #fff; padding: .3em .4em; margin: .3em 0; border-radius: 4px; }
-#partes { margin-top: .8em; font-size: .88em; color: var(--suave); }
-#partes li { cursor: pointer; }
+.historial { list-style: none; padding: 0; margin: 0; font-size: .9em; }
+.historial li { border: 1px solid var(--borde); border-radius: 6px; padding: .4em .5em; margin-bottom: .45em; }
+.historial .meta { color: var(--suave); font-size: .9em; }
+.historial .estado { display: inline-block; border-radius: 8px; padding: 0 .45em; font-size: .85em; background: #eee; }
+.historial .estado.construida, .historial .estado.terminada { background: #dff0df; color: #276b27; }
+.historial .botones { margin-top: .3em; gap: .3em; }
+.historial .botones a, .historial .botones button { font-size: .85em; padding: .1em .5em; }
+.historial a { color: var(--sel); border: 1px solid var(--borde); border-radius: 6px; text-decoration: none; background: #fff; }
 
 .panel { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--borde); }
 .panel .cabecera { display: flex; align-items: center; gap: .6em; padding: .4em .8em; background: var(--panel); border-bottom: 1px solid var(--borde); }
