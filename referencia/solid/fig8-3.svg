@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320" font-family="Noto Sans, DejaVu Sans, sans-serif">
+<rect width="480" height="320" fill="white"/>
+<rect x="80" y="15" width="140" height="60" fill="white" stroke="#111" stroke-width="1.3"/>
+<rect x="73" y="30.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<rect x="73" y="51.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<text x="154.0" y="33.0" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Financial</text>
+<text x="154.0" y="49.0" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Report</text>
+<text x="154.0" y="65.0" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Controller</text>
+<rect x="320" y="15" width="140" height="60" fill="white" stroke="#111" stroke-width="1.3"/>
+<rect x="313" y="30.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<rect x="313" y="51.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<text x="394.0" y="33.0" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Financial</text>
+<text x="394.0" y="49.0" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Report</text>
+<text x="394.0" y="65.0" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Interactor</text>
+<rect x="20" y="130" width="130" height="55" fill="white" stroke="#111" stroke-width="1.3"/>
+<rect x="13" y="143.75" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<rect x="13" y="163.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<text x="89.0" y="153.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Screen</text>
+<text x="89.0" y="169.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Presenter</text>
+<rect x="175" y="130" width="130" height="55" fill="white" stroke="#111" stroke-width="1.3"/>
+<rect x="168" y="143.75" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<rect x="168" y="163.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<text x="244.0" y="153.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Print</text>
+<text x="244.0" y="169.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Presenter</text>
+<rect x="320" y="130" width="140" height="55" fill="white" stroke="#111" stroke-width="1.3"/>
+<rect x="313" y="143.75" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<rect x="313" y="163.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<text x="394.0" y="153.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Financial</text>
+<text x="394.0" y="169.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Database</text>
+<rect x="20" y="250" width="130" height="55" fill="white" stroke="#111" stroke-width="1.3"/>
+<rect x="13" y="263.75" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<rect x="13" y="283.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<text x="89.0" y="273.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Web</text>
+<text x="89.0" y="289.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">View</text>
+<rect x="175" y="250" width="130" height="55" fill="white" stroke="#111" stroke-width="1.3"/>
+<rect x="168" y="263.75" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<rect x="168" y="283.0" width="14" height="9" fill="white" stroke="#111" stroke-width="1.1"/>
+<text x="244.0" y="273.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">PDF</text>
+<text x="244.0" y="289.5" font-size="12" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">View</text>
+<polyline points="220,45 312,45" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="301.9509999659314,49.4741030738338 312,45 301.9509999659314,40.5258969261662" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="88,130 88,105 240,105 240,130" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="150,105 150,76" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="154.47410307383382,86.04900003406861 150,76 145.52589692616618,86.04900003406861" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="390,130 390,76" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="394.4741030738338,86.04900003406861 390,76 385.5258969261662,86.04900003406861" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="88,250 88,186" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="92.4741030738338,196.0490000340686 88,186 83.5258969261662,196.0490000340686" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="240,250 240,186" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="244.47410307383382,196.0490000340686 240,186 235.52589692616618,196.0490000340686" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+</svg>

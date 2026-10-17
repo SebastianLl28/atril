@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Principios SOLID — Arquitectura Limpia, Parte III</title>
+<style>
+@page {
+  size: letter;
+  margin: 2.2cm 2.1cm 2.3cm 2.1cm;
+  @bottom-center { content: counter(page); font: 9pt "Noto Sans"; color: #444; }
+  @top-right { content: string(cap); font: 8pt "Noto Sans"; color: #666; }
+}
+@page :first { @bottom-center { content: none; } @top-right { content: none; } }
+@page portada { @bottom-center { content: none; } @top-right { content: none; } }
+
+html { font-family: "Noto Serif", "DejaVu Serif", serif; font-size: 10.6pt; line-height: 1.5; color: #111; }
+body { margin: 0; }
+p { margin: 0 0 0.62em; text-align: justify; hyphens: auto; orphans: 3; widows: 3; }
+h1, h2, h3, .fig figcaption, .com .label, .portada, .indice { font-family: "Noto Sans", sans-serif; }
+
+.portada { page: portada; page-break-after: always; padding-top: 5.5cm; }
+.portada .kicker { font-size: 10pt; letter-spacing: .18em; color: #555; text-transform: uppercase; }
+.portada h1 { font-size: 30pt; line-height: 1.1; margin: .3em 0 .2em; }
+.portada .sub { font-size: 13pt; color: #333; margin-bottom: 2.4cm; }
+.portada .meta { font-size: 9.5pt; color: #333; border-top: 1px solid #999; padding-top: .8em; }
+.portada .meta p { text-align: left; }
+
+.indice { page-break-after: always; }
+.indice h2 { font-size: 15pt; margin: 0 0 .8em; }
+.indice ol { list-style: none; padding: 0; margin: 0 0 1.4em; }
+.indice li { display: flex; font-size: 10.5pt; padding: .28em 0; border-bottom: 1px dotted #bbb; }
+.indice li a { color: #111; text-decoration: none; flex: 1; }
+.indice li a::after { content: target-counter(attr(href), page); float: right; }
+
+section.cap { page-break-before: always; }
+.num { font-family: "Noto Sans", sans-serif; font-size: 34pt; font-weight: 300; color: #555; line-height: 1; margin: 0; }
+h1 { font-size: 19pt; line-height: 1.2; margin: .15em 0 .3em; string-set: cap attr(data-cap); }
+h1 .en { display: block; font-size: 9.5pt; font-weight: normal; color: #666; letter-spacing: .04em; margin-top: .35em; }
+h2 { font-size: 11.5pt; letter-spacing: .05em; text-transform: uppercase; margin: 1.5em 0 .5em; page-break-after: avoid; }
+.ilustracion { text-align: center; margin: .6em 0 1.3em; }
+.ilustracion img { height: 4.2cm; }
+
+blockquote { margin: .7em 2em .9em; font-style: italic; font-size: 10.8pt; }
+blockquote.def { font-style: normal; font-weight: bold; text-align: center; margin: .9em 1.5em 1em; }
+ul { margin: .2em 0 .8em; padding-left: 1.4em; }
+li { margin-bottom: .3em; text-align: justify; }
+code, .mono { font-family: "Noto Sans Mono", "DejaVu Sans Mono", monospace; font-size: 9.2pt; }
+pre { font-family: "Noto Sans Mono", monospace; font-size: 9pt; line-height: 1.45; background: #f3f3f3;
+      border: 1px solid #ccc; padding: .6em .9em; margin: .5em 0 1em; white-space: pre-wrap; page-break-inside: avoid; }
+table.cfg { page-break-inside: avoid; border-collapse: collapse; margin: .5em auto 1em; font-size: 9pt; }
+table.cfg th, table.cfg td { border: 1px solid #888; padding: .3em .7em; text-align: left; }
+table.cfg th { font-family: "Noto Sans", sans-serif; background: #eee; }
+
+.fig { margin: 1em 0 1.2em; text-align: center; page-break-inside: avoid; }
+.fig img { max-width: 100%; }
+.fig figcaption { font-size: 8.8pt; color: #333; margin-top: .45em; }
+.fig figcaption b { color: #000; }
+
+/* Comentarios añadidos: no forman parte del libro */
+.com { border: 1px solid #555; border-left: 5px solid #111; background: #ececec; padding: .55em .9em .35em;
+       margin: .9em 0 1.1em; font-family: "Noto Sans", sans-serif; font-size: 9.3pt; line-height: 1.45; page-break-inside: avoid; }
+.com .label { display: block; font-size: 7.6pt; font-weight: bold; letter-spacing: .12em; text-transform: uppercase; color: #000; margin-bottom: .35em; }
+.com p, .com li { text-align: left; }
+.com ul, .com ol { margin: .2em 0 .5em; padding-left: 1.3em; }
+.com pre { background: #fff; font-size: 8.5pt; }
+.com table { border-collapse: collapse; margin: .3em 0 .6em; width: 100%; }
+.com td, .com th { border: 1px solid #999; padding: .25em .5em; text-align: left; vertical-align: top; background: #fff; }
+.com th { background: #ddd; }
+.com .fig { margin: .4em 0 .6em; }
+.allow-break { page-break-inside: auto; }
+
+.fn { float: footnote; font-style: normal; font-size: 8.3pt; line-height: 1.35; text-align: left; }
+::footnote-call { content: counter(footnote); font-size: 7pt; vertical-align: super; line-height: 0; }
+::footnote-marker { content: counter(footnote) ". "; }
+@page { @footnote { border-top: 1px solid #999; padding-top: .4em; margin-top: .6em; } }
+</style>
+</head>
+<body>
+
+<!-- ===================================================== PORTADA -->
+<div class="portada">
+  <div class="kicker">Arquitectura Limpia · Parte III</div>
+  <h1>Principios de diseño:<br>SOLID</h1>
+  <div class="sub">SRP · OCP · LSP · ISP · DIP — capítulos 7 a 11</div>
+  <div class="meta">
+    <p><b>Fuente:</b> Robert C. Martin, <i>Clean Architecture: A Craftsman’s Guide to Software Structure and Design</i>, Prentice Hall, 2017. Parte III, «Design Principles» (págs. 62–86 del PDF en inglés).</p>
+    <p><b>Esta versión:</b> traducción al español revisada directamente del original en inglés, para estudio personal. Sustituye la traducción automática (págs. 77–108 del PDF en español), que contenía errores como «principios SÓLIDOS» o «criterios de diseño». Los diagramas se han redibujado en vectores para que se impriman nítidos.</p>
+    <div class="com" style="margin-top:1.2em">
+      <span class="label">Comentario · cómo leer este documento</span>
+      Todo lo que aparece dentro de un recuadro gris como este es un <b>comentario añadido</b> para ayudar a entender el texto o los diagramas. <b>No forma parte del libro.</b> Todo lo demás (texto normal, citas, figuras y notas al pie) es traducción fiel del original.
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================== ÍNDICE -->
+<div class="indice">
+  <h2>Contenido</h2>
+  <ol>
+    <li><a href="#p3">Parte III · Principios de diseño</a></li>
+    <li><a href="#c7">7 · SRP: el principio de responsabilidad única</a></li>
+    <li><a href="#c8">8 · OCP: el principio abierto-cerrado</a></li>
+    <li><a href="#c9">9 · LSP: el principio de sustitución de Liskov</a></li>
+    <li><a href="#c10">10 · ISP: el principio de segregación de interfaces</a></li>
+    <li><a href="#c11">11 · DIP: el principio de inversión de dependencias</a></li>
+    <li><a href="#resumen">Resumen final (comentario)</a></li>
+  </ol>
+  <div class="com">
+    <span class="label">Comentario · glosario de términos que se dejan en inglés</span>
+    <table>
+      <tr><th>Término</th><th>Significado</th></tr>
+      <tr><td><b>SOLID</b></td><td>Acrónimo formado por las iniciales de los cinco principios en inglés. Es un nombre propio y <b>no se traduce</b> (no es «sólido»), aunque en inglés también es un juego de palabras con <i>solid</i>, «sólido».</td></tr>
+      <tr><td><b>Stakeholder</b></td><td>Parte interesada: alguien con interés en el sistema (cliente, área de negocio, dirección…).</td></tr>
+      <tr><td><b>Merge</b></td><td>Fusión: combinar en control de versiones (Git, etc.) los cambios que dos personas hicieron sobre el mismo archivo.</td></tr>
+      <tr><td><b>CFO / COO / CTO</b></td><td>Director financiero / director de operaciones / director de tecnología.</td></tr>
+      <tr><td><b>DBA</b></td><td>Administrador de bases de datos.</td></tr>
+      <tr><td><b>Nombres de clases</b></td><td><code>Employee</code>, <code>calculatePay()</code>, <code>Interactor</code>, etc. Son identificadores de código y se mantienen en inglés, tanto en el texto como en los diagramas.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===================================================== PARTE III -->
+<section class="cap" id="p3">
+<p class="num">III</p>
+<h1 data-cap="Parte III · Principios de diseño">Principios de diseño<span class="en">DESIGN PRINCIPLES</span></h1>
+<div class="ilustracion"><img src="il-solid.png" alt=""></div>
+
+<p>Los buenos sistemas de software comienzan con código limpio. Por un lado, si los ladrillos no están bien hechos, la arquitectura del edificio no importa mucho. Por otro lado, se puede armar un desastre considerable con ladrillos bien hechos. Aquí es donde entran en juego los principios SOLID.</p>
+
+<p>Los principios SOLID nos dicen cómo organizar nuestras funciones y estructuras de datos en clases, y cómo deben interconectarse esas clases. El uso de la palabra «clase» no implica que estos principios solo se apliquen al software orientado a objetos. Una clase es simplemente una agrupación acoplada de funciones y datos. Todo sistema de software tiene agrupaciones de este tipo, se llamen clases o no. Los principios SOLID se aplican a esas agrupaciones.</p>
+
+<p>El objetivo de los principios es crear estructuras de software de nivel medio que:</p>
+<ul>
+  <li>toleren el cambio,</li>
+  <li>sean fáciles de entender, y</li>
+  <li>sean la base de componentes que puedan usarse en muchos sistemas de software.</li>
+</ul>
+
+<p>El término «nivel medio» se refiere a que estos principios los aplican programadores que trabajan a nivel de módulo. Se aplican justo por encima del nivel del código y ayudan a definir los tipos de estructuras de software que se usan dentro de los módulos y componentes.</p>
+
+<p>Así como es posible armar un desastre considerable con ladrillos bien hechos, también es posible crear un desastre a nivel de todo el sistema con componentes de nivel medio bien diseñados. Por esta razón, una vez que hayamos cubierto los principios SOLID, pasaremos a sus equivalentes en el mundo de los componentes y, después, a los principios de la arquitectura de alto nivel.</p>
+
+<div class="com">
+  <span class="label">Comentario · los tres niveles de los que habla el libro</span>
+  <ol>
+    <li><b>Código</b> (funciones, líneas): el terreno de «código limpio». Son los <i>ladrillos</i>.</li>
+    <li><b>Nivel medio</b> (clases y módulos): el terreno de <b>SOLID</b>, esta parte del libro. Son las <i>paredes y habitaciones</i>.</li>
+    <li><b>Componentes y arquitectura</b> (bibliotecas, servicios, capas): Partes IV y V del libro. Es el <i>edificio</i>.</li>
+  </ol>
+</div>
+
+<p>La historia de los principios SOLID es larga. Empecé a reunirlos a finales de los años ochenta, mientras debatía principios de diseño de software con otras personas en USENET (una especie de Facebook primitivo). Con los años, los principios fueron cambiando y evolucionando. Algunos se eliminaron. Otros se fusionaron. Y otros se añadieron. La agrupación definitiva se estabilizó a principios de los años 2000, aunque entonces los presenté en un orden distinto.</p>
+
+<p>Hacia 2004, Michael Feathers me envió un correo electrónico diciéndome que, si reordenaba los principios, sus primeras palabras formarían la palabra SOLID. Y así nacieron los principios SOLID.</p>
+
+<p>Los capítulos que siguen describen cada principio con más detalle. Este es el resumen ejecutivo:</p>
+<ul>
+  <li><b>SRP: el principio de responsabilidad única</b> (<i>Single Responsibility Principle</i>)<br>
+  Un corolario activo de la ley de Conway: la mejor estructura para un sistema de software está muy influida por la estructura social de la organización que lo usa, de modo que cada módulo de software tenga una, y solo una, razón para cambiar.</li>
+  <li><b>OCP: el principio abierto-cerrado</b> (<i>Open-Closed Principle</i>)<br>
+  Bertrand Meyer hizo famoso este principio en los años ochenta. La idea central es que, para que los sistemas de software sean fáciles de cambiar, deben diseñarse de modo que su comportamiento pueda modificarse <i>añadiendo</i> código nuevo, en lugar de <i>cambiar</i> el código existente.</li>
+  <li><b>LSP: el principio de sustitución de Liskov</b> (<i>Liskov Substitution Principle</i>)<br>
+  La famosa definición de subtipos de Barbara Liskov, de 1988. En pocas palabras, este principio dice que, para construir sistemas de software a partir de piezas intercambiables, esas piezas deben cumplir un contrato que permita sustituir unas por otras.</li>
+  <li><b>ISP: el principio de segregación de interfaces</b> (<i>Interface Segregation Principle</i>)<br>
+  Este principio aconseja a los diseñadores de software evitar depender de cosas que no usan.</li>
+  <li><b>DIP: el principio de inversión de dependencias</b> (<i>Dependency Inversion Principle</i>)<br>
+  El código que implementa las políticas de alto nivel no debe depender del código que implementa los detalles de bajo nivel. Al contrario: los detalles deben depender de las políticas.</li>
+</ul>
+
+<div class="com">
+  <span class="label">Comentario · la ley de Conway</span>
+  Melvin Conway (1967) observó que <i>las organizaciones diseñan sistemas que copian su propia estructura de comunicación</i>. Por ejemplo, si tres equipos construyen un compilador, saldrá un compilador de tres fases. El SRP es un «corolario activo» de esa ley porque la usa a propósito: organiza el código según <b>quién</b> (qué grupo de personas) va a pedir cambios en él.
+</div>
+
+<p>Estos principios se han descrito en detalle en muchas publicaciones diferentes<span class="fn">Por ejemplo, <i>Agile Software Development, Principles, Patterns, and Practices</i>, Robert C. Martin, Prentice Hall, 2002; http://www.butunclebob.com/ArticleS.UncleBob.PrinciplesOfOod; y https://en.wikipedia.org/wiki/SOLID_(object-oriented_design) (o simplemente busca SOLID en Google).</span> a lo largo de los años. Los capítulos que siguen se centrarán en las implicaciones arquitectónicas de estos principios, en lugar de repetir esas discusiones detalladas. Si todavía no conoces estos principios, lo que sigue no basta para entenderlos en detalle, y te convendría estudiarlos en los documentos citados en la nota al pie.</p>
+</section>
+
+<!-- ===================================================== CAPÍTULO 7 -->
+<section class="cap" id="c7">
+<p class="num">7</p>
+<h1 data-cap="7 · SRP: principio de responsabilidad única">SRP: el principio de responsabilidad única<span class="en">SRP: THE SINGLE RESPONSIBILITY PRINCIPLE</span></h1>
+<div class="ilustracion"><img src="il-srp.png" alt=""></div>
+
+<p>De todos los principios SOLID, el principio de responsabilidad única (SRP) es quizá el peor entendido. Probablemente se deba a que tiene un nombre especialmente desafortunado. Es demasiado fácil que los programadores oigan el nombre y supongan que significa que cada módulo debe hacer una sola cosa.</p>
+
+<p>No nos engañemos: sí existe un principio así. <i>Una función</i> debe hacer una, y solo una, cosa. Usamos ese principio cuando refactorizamos funciones grandes en funciones más pequeñas; lo usamos en los niveles más bajos. Pero no es uno de los principios SOLID: no es el SRP.</p>
+
+<p>Históricamente, el SRP se ha descrito así:</p>
+<blockquote class="def">Un módulo debe tener una, y solo una, razón para cambiar.</blockquote>
+
+<p>Los sistemas de software se modifican para satisfacer a usuarios y partes interesadas (<i>stakeholders</i>); esos usuarios y partes interesadas son la «razón para cambiar» de la que habla el principio. De hecho, podemos reformular el principio así:</p>
+<blockquote class="def">Un módulo debe ser responsable ante uno, y solo un, usuario o parte interesada.</blockquote>
+
+<p>Por desgracia, las palabras «usuario» y «parte interesada» no son realmente las adecuadas aquí. Es probable que haya más de un usuario o parte interesada que quiera cambiar el sistema de la misma manera. En realidad nos referimos a un grupo: una o más personas que requieren ese cambio. A ese grupo lo llamaremos <b>actor</b>.</p>
+
+<p>Así, la versión final del SRP es:</p>
+<blockquote class="def">Un módulo debe ser responsable ante uno, y solo un, actor.</blockquote>
+
+<div class="com">
+  <span class="label">Comentario · la idea clave del SRP</span>
+  <table>
+    <tr><th>Lo que <u>no</u> dice el SRP</th><th>Lo que <u>sí</u> dice el SRP</th></tr>
+    <tr><td>«Cada clase debe hacer una sola cosa». Esa regla existe, pero es para <b>funciones</b> y no es el SRP.</td><td>«Cada módulo debe responder ante <b>un solo actor</b>», es decir, ante un único grupo de personas que puede pedir cambios en él.</td></tr>
+  </table>
+  Pregunta práctica para aplicarlo: <i>«Si este archivo cambia, ¿qué área de la empresa lo habrá pedido?»</i>. Si la respuesta es «depende: a veces contabilidad, a veces RR. HH.», el módulo viola el SRP.
+</div>
+
+<p>Ahora bien, ¿qué queremos decir con la palabra «módulo»? La definición más simple es un archivo de código fuente. La mayoría de las veces esa definición funciona bien. Sin embargo, algunos lenguajes y entornos de desarrollo no usan archivos de código fuente para guardar su código. En esos casos, un módulo es simplemente un conjunto cohesivo de funciones y estructuras de datos.</p>
+
+<p>Esa palabra, «cohesivo», implica el SRP. La cohesión es la fuerza que une el código responsable ante un único actor.</p>
+
+<p>Quizá la mejor manera de entender este principio sea observar los síntomas de su violación.</p>
+
+<h2>Síntoma 1: duplicación accidental</h2>
+<p>Mi ejemplo favorito es la clase <code>Employee</code> (empleado) de una aplicación de nóminas. Tiene tres métodos: <code>calculatePay()</code>, <code>reportHours()</code> y <code>save()</code> (figura 7.1).</p>
+
+<figure class="fig"><img src="fig7-1.svg" style="width:10.5cm"><figcaption><b>Figura 7.1</b> La clase <code>Employee</code></figcaption></figure>
+
+<div class="com">
+  <span class="label">Comentario · cómo leer la figura 7.1</span>
+  Los monigotes son <b>actores</b>, es decir, grupos de personas. Las flechas discontinuas significan «este actor es quien define y pide cambios en esta parte de la clase». Las tres flechas llegan a <b>la misma clase</b>: tres jefes distintos mandan sobre el mismo archivo. Ese es el problema. Los métodos significan: <code>calculatePay</code> = calcular el sueldo, <code>reportHours</code> = informar de las horas trabajadas, <code>save</code> = guardar en la base de datos.
+</div>
+
+<p>Esta clase viola el SRP porque esos tres métodos son responsables ante tres actores muy diferentes:</p>
+<ul>
+  <li>El método <code>calculatePay()</code> lo especifica el departamento de contabilidad, que reporta al CFO (director financiero).</li>
+  <li>El método <code>reportHours()</code> lo especifica y lo usa el departamento de recursos humanos, que reporta al COO (director de operaciones).</li>
+  <li>El método <code>save()</code> lo especifican los administradores de bases de datos (DBA), que reportan al CTO (director de tecnología).</li>
+</ul>
+
+<p>Al poner el código fuente de estos tres métodos en una sola clase <code>Employee</code>, los desarrolladores han acoplado a cada uno de estos actores con los demás. Este acoplamiento puede hacer que las acciones del equipo del CFO afecten a algo de lo que depende el equipo del COO.</p>
+
+<p>Por ejemplo, supongamos que la función <code>calculatePay()</code> y la función <code>reportHours()</code> comparten un algoritmo común para calcular las horas normales (las que no son horas extra). Supongamos también que los desarrolladores, que tienen cuidado de no duplicar código, colocan ese algoritmo en una función llamada <code>regularHours()</code> (figura 7.2).</p>
+
+<figure class="fig"><img src="fig7-2.svg" style="width:9.5cm"><figcaption><b>Figura 7.2</b> Algoritmo compartido</figcaption></figure>
+
+<p>Ahora supongamos que el equipo del CFO decide que hay que ajustar la forma de calcular las horas normales. En cambio, el equipo del COO en Recursos Humanos no quiere ese ajuste, porque usa las horas normales para otro propósito.</p>
+
+<p>A un desarrollador se le encarga hacer el cambio, y ve la práctica función <code>regularHours()</code> llamada por el método <code>calculatePay()</code>. Por desgracia, no se da cuenta de que la función también la llama <code>reportHours()</code>.</p>
+
+<p>El desarrollador hace el cambio solicitado y lo prueba cuidadosamente. El equipo del CFO valida que la nueva función se comporta como se esperaba, y el sistema se despliega.</p>
+
+<p>Por supuesto, el equipo del COO no sabe que esto está ocurriendo. El personal de RR. HH. sigue usando los informes generados por la función <code>reportHours()</code>, pero ahora contienen cifras incorrectas. Al final se descubre el problema, y el COO está furioso porque los datos erróneos le han costado millones de dólares a su presupuesto.</p>
+
+<p>Todos hemos visto pasar cosas así. Estos problemas ocurren porque ponemos muy cerca código del que dependen actores diferentes. El SRP dice que hay que <i>separar el código del que dependen actores diferentes</i>.</p>
+
+<div class="com">
+  <span class="label">Comentario · por qué se llama «duplicación accidental»</span>
+  Los programadores creyeron que el cálculo de horas era <i>el mismo código</i> y lo unificaron en <code>regularHours()</code> para no repetirlo (principio DRY). En realidad solo era <b>parecido por casualidad</b>: cada actor podía cambiarlo por motivos distintos. Dos fragmentos de código que hoy son iguales pero que cambian por razones diferentes <b>no</b> son duplicación real. Unificarlos acopla a sus actores.
+</div>
+
+<h2>Síntoma 2: fusiones (<i>merges</i>)</h2>
+<p>No es difícil imaginar que las fusiones serán frecuentes en archivos de código fuente que contienen muchos métodos diferentes. Esta situación es especialmente probable si esos métodos son responsables ante actores distintos.</p>
+
+<p>Por ejemplo, supongamos que el equipo de DBA del CTO decide hacer un cambio sencillo en el esquema de la tabla <code>Employee</code> de la base de datos. Supongamos también que el equipo de administrativos de RR. HH. del COO decide que necesita un cambio en el formato del informe de horas.</p>
+
+<p>Dos desarrolladores diferentes, posiblemente de dos equipos distintos, obtienen la clase <code>Employee</code> del repositorio y empiezan a hacer cambios. Por desgracia, sus cambios chocan. El resultado es una fusión.</p>
+
+<p>Probablemente no hace falta que te diga que las fusiones son asuntos arriesgados. Nuestras herramientas son bastante buenas hoy en día, pero ninguna herramienta puede resolver todos los casos de fusión. Al final, siempre hay riesgo.</p>
+
+<p>En nuestro ejemplo, la fusión pone en riesgo tanto al CTO como al COO. Y no es descabellado pensar que el CFO también podría verse afectado.</p>
+
+<p>Hay muchos otros síntomas que podríamos investigar, pero todos implican a varias personas que modifican el mismo archivo de código fuente por razones diferentes.</p>
+
+<p>Una vez más, la forma de evitar este problema es <i>separar el código que da soporte a actores diferentes</i>.</p>
+
+<h2>Soluciones</h2>
+<p>Hay muchas soluciones distintas para este problema. Todas trasladan las funciones a clases diferentes.</p>
+
+<p>Quizá la forma más obvia de resolver el problema sea separar los datos de las funciones. Las tres clases comparten el acceso a <code>EmployeeData</code>, que es una estructura de datos simple, sin métodos (figura 7.3). Cada clase contiene solo el código fuente necesario para su función concreta. Las tres clases no pueden conocerse entre sí. Así se evita cualquier duplicación accidental.</p>
+
+<figure class="fig"><img src="fig7-3.svg" style="width:9.5cm"><figcaption><b>Figura 7.3</b> Las tres clases no se conocen entre sí</figcaption></figure>
+
+<p>La desventaja de esta solución es que ahora los desarrolladores tienen tres clases que deben instanciar y controlar. Una solución habitual a este dilema es usar el patrón <b>Fachada</b> (<i>Facade</i>) (figura 7.4).</p>
+
+<figure class="fig"><img src="fig7-4.svg" style="width:13.5cm"><figcaption><b>Figura 7.4</b> El patrón Fachada (<i>Facade</i>)</figcaption></figure>
+
+<p><code>EmployeeFacade</code> contiene muy poco código. Se encarga de instanciar las clases que tienen las funciones y de delegar en ellas.</p>
+
+<p>Algunos desarrolladores prefieren mantener las reglas de negocio más importantes más cerca de los datos. Esto puede hacerse dejando el método más importante en la clase <code>Employee</code> original y usando después esa clase como fachada para las funciones menores (figura 7.5).</p>
+
+<figure class="fig"><img src="fig7-5.svg" style="width:11cm"><figcaption><b>Figura 7.5</b> El método más importante se mantiene en la clase <code>Employee</code> original, que se usa como fachada para las funciones menores</figcaption></figure>
+
+<div class="com">
+  <span class="label">Comentario · comparación de las tres soluciones</span>
+  <table>
+    <tr><th>Figura</th><th>Idea</th><th>Ventaja</th><th>Inconveniente</th></tr>
+    <tr><td>7.3</td><td>Una clase por actor más una estructura de datos compartida y «tonta»</td><td>Separación total: ningún actor afecta a otro</td><td>Quien usa el sistema debe crear y manejar tres objetos</td></tr>
+    <tr><td>7.4</td><td>Igual que 7.3, más una <b>fachada</b> que da una sola puerta de entrada</td><td>Separación y comodidad de uso</td><td>Una clase extra, casi vacía</td></tr>
+    <tr><td>7.5</td><td><code>Employee</code> conserva la regla más importante (el cálculo del sueldo) y delega el resto</td><td>La regla de negocio principal queda junto a los datos</td><td>Contabilidad sigue «dueña» de <code>Employee</code></td></tr>
+  </table>
+  Para leer las flechas: una flecha con punta abierta (→) significa «<b>usa</b> / conoce a». En 7.4, la fachada conoce a las tres clases, y estas conocen a <code>EmployeeData</code>, pero ninguna de las tres conoce a las otras.
+</div>
+
+<p>Podrías objetar que, con estas soluciones, cada clase contendría una sola función. No es así en absoluto. Es probable que el número de funciones necesarias para calcular el sueldo, generar un informe o guardar los datos sea grande en cada caso. Cada una de esas clases tendría muchos métodos privados.</p>
+
+<p>Cada una de las clases que contiene una familia de métodos así es un ámbito (<i>scope</i>). Fuera de ese ámbito, nadie sabe que existen los miembros privados de la familia.</p>
+
+<h2>Conclusión</h2>
+<p>El principio de responsabilidad única trata sobre funciones y clases, pero reaparece en otra forma en dos niveles más. A nivel de componentes, se convierte en el <b>principio de cierre común</b> (<i>Common Closure Principle</i>, CCP). A nivel arquitectónico, se convierte en el <b>eje de cambio</b> (<i>Axis of Change</i>) responsable de la creación de los <b>límites arquitectónicos</b>. Estudiaremos todas estas ideas en los próximos capítulos.</p>
+</section>
+
+<!-- ===================================================== CAPÍTULO 8 -->
+<section class="cap" id="c8">
+<p class="num">8</p>
+<h1 data-cap="8 · OCP: principio abierto-cerrado">OCP: el principio abierto-cerrado<span class="en">OCP: THE OPEN-CLOSED PRINCIPLE</span></h1>
+<div class="ilustracion"><img src="il-ocp.png" alt="" style="height:4.6cm"></div>
+
+<p>El principio abierto-cerrado (OCP) lo formuló Bertrand Meyer en 1988.<span class="fn">Bertrand Meyer, <i>Object Oriented Software Construction</i>, Prentice Hall, 1988, p. 23.</span> Dice:</p>
+<blockquote class="def">Un artefacto de software debe estar abierto a la extensión, pero cerrado a la modificación.</blockquote>
+
+<p>En otras palabras, el comportamiento de un artefacto de software debería poder ampliarse sin tener que modificar ese artefacto.</p>
+
+<p>Esta es, por supuesto, la razón más fundamental por la que estudiamos la arquitectura de software. Evidentemente, si ampliaciones sencillas de los requisitos obligan a hacer cambios masivos en el software, los arquitectos de ese sistema han fracasado de forma espectacular.</p>
+
+<p>La mayoría de quienes estudian diseño de software reconocen el OCP como un principio que los guía en el diseño de clases y módulos. Pero el principio cobra una importancia aún mayor cuando consideramos el nivel de los componentes arquitectónicos.</p>
+
+<p>Un experimento mental lo dejará claro.</p>
+
+<h2>Un experimento mental</h2>
+<p>Imagina por un momento que tenemos un sistema que muestra un resumen financiero en una página web. Los datos de la página se pueden desplazar con la barra de desplazamiento, y los números negativos se muestran en rojo.</p>
+
+<p>Ahora imagina que las partes interesadas piden que esa misma información se convierta en un informe para imprimir en una impresora en blanco y negro. El informe debe estar bien paginado, con encabezados de página, pies de página y etiquetas de columna adecuados. Los números negativos deben ir entre paréntesis.</p>
+
+<p>Evidentemente, hay que escribir código nuevo. Pero ¿cuánto código antiguo habrá que cambiar?</p>
+
+<p>Una buena arquitectura de software reduciría la cantidad de código modificado al mínimo indispensable. Idealmente, a cero.</p>
+
+<p>¿Cómo? Separando correctamente las cosas que cambian por razones diferentes (el principio de responsabilidad única) y organizando después correctamente las dependencias entre esas cosas (el principio de inversión de dependencias).</p>
+
+<p>Aplicando el SRP, podríamos llegar a la vista de flujo de datos que se muestra en la figura 8.1. Algún procedimiento de análisis inspecciona los datos financieros y produce datos aptos para el informe, que después los dos procesos generadores de informes formatean de la manera adecuada.</p>
+
+<figure class="fig"><img src="fig8-1.svg" style="width:13cm"><figcaption><b>Figura 8.1</b> Aplicando el SRP</figcaption></figure>
+
+<div class="com">
+  <span class="label">Comentario · cómo leer la figura 8.1</span>
+  Es un <b>diagrama de flujo de datos</b>, no de clases. Las elipses son <i>procesos</i> (algo que transforma datos) y los nombres entre dos líneas horizontales son <i>almacenes de datos</i>. Se lee de izquierda a derecha: los datos financieros entran al analizador, que produce los «datos del informe»; esos mismos datos los consumen <b>dos</b> presentadores distintos, uno para la web y otro para imprimir. La separación clave es: <b>calcular</b> (una responsabilidad) frente a <b>presentar</b> (otra responsabilidad).
+</div>
+
+<p>La idea esencial aquí es que generar el informe implica dos responsabilidades separadas: el cálculo de los datos del informe y la presentación de esos datos en una forma adecuada para la web y para la impresora.</p>
+
+<p>Una vez hecha esta separación, tenemos que organizar las dependencias del código fuente para asegurarnos de que los cambios en una de esas responsabilidades no provoquen cambios en la otra. Además, la nueva organización debe garantizar que el comportamiento pueda ampliarse sin modificaciones indebidas.</p>
+
+<p>Lo conseguimos dividiendo los procesos en clases y separando esas clases en componentes, como muestran las líneas dobles del diagrama de la figura 8.2. En esta figura, el componente de arriba a la izquierda es el <b>Controller</b> (controlador). Arriba a la derecha tenemos el <b>Interactor</b>. Abajo a la derecha está la <b>Database</b> (base de datos). Por último, abajo a la izquierda hay cuatro componentes que representan los <b>Presenters</b> (presentadores) y las <b>Views</b> (vistas).</p>
+
+<figure class="fig"><img src="fig8-2.svg" style="width:16.4cm"><figcaption><b>Figura 8.2</b> División de los procesos en clases y separación de las clases en componentes</figcaption></figure>
+
+<p>Las clases marcadas con <code>&lt;I&gt;</code> son interfaces; las marcadas con <code>&lt;DS&gt;</code> son estructuras de datos (<i>data structures</i>). Las puntas de flecha abiertas indican relaciones de <i>uso</i>. Las puntas de flecha cerradas indican relaciones de <i>implementación</i> o de <i>herencia</i>.</p>
+
+<div class="com">
+  <span class="label">Comentario · guía para leer la figura 8.2 (1/2): los símbolos</span>
+  <table>
+    <tr><th>Símbolo</th><th>Significado</th></tr>
+    <tr><td>Rectángulo con <b>doble línea</b> y nombre arriba</td><td>Un <b>componente</b>: algo que se compila y despliega por separado (un .jar, una .dll, un paquete…).</td></tr>
+    <tr><td>Rectángulo simple</td><td>Una clase.</td></tr>
+    <tr><td><code>&lt;I&gt;</code> / <code>&lt;DS&gt;</code></td><td>Interfaz / estructura de datos simple (solo datos, sin lógica).</td></tr>
+    <tr><td>Flecha con punta abierta →</td><td>«A <b>usa</b> a B»: el código de A menciona a B.</td></tr>
+    <tr><td>Flecha con triángulo hueco ▷</td><td>«A <b>implementa</b> (o hereda de) B».</td></tr>
+  </table>
+</div>
+<div class="com">
+  <span class="label">Comentario · guía para leer la figura 8.2 (2/2): recorrido de una petición</span>
+  Siguiendo el flujo en ejecución:
+  <ol>
+    <li><code>FinancialReportController</code> recibe la petición del usuario, la empaqueta en <code>FinancialReportRequest</code> y llama a la interfaz <code>FinancialReportRequester</code>.</li>
+    <li>Esa interfaz la implementa <code>FinancialReportGenerator</code>, que es la lógica de negocio. Este usa las <code>Financial entities</code> (entidades, es decir, las reglas de negocio) y pide los datos a la interfaz <code>FinancialDataGateway</code>.</li>
+    <li><code>FinancialDataMapper</code>, en el componente <i>Database</i>, implementa ese <i>gateway</i> y lee de <code>FinancialDatabase</code>.</li>
+    <li>El generador devuelve el resultado en <code>FinancialReportResponse</code>. El <code>FinancialReportPresenter</code>, que es una interfaz, lo recibe, y lo implementa <code>ScreenPresenter</code> o <code>PrintPresenter</code>.</li>
+    <li>Cada presentador rellena su <code>ViewModel</code> (los datos ya formateados: números negativos en rojo o entre paréntesis) y llama a su interfaz <code>View</code>, que implementan <code>WebView</code> o <code>PDFView</code>.</li>
+  </ol>
+  <b>Observa:</b> el informe impreso de la historia se añade creando los componentes <i>Print Presenter</i> y <i>PDF View</i>, <b>sin tocar</b> el Interactor ni el Controller. Eso es exactamente el OCP: el sistema está abierto a la extensión y cerrado a la modificación.
+</div>
+
+<p>Lo primero que hay que notar es que todas las dependencias son dependencias de <i>código fuente</i>. Una flecha que apunta de la clase A a la clase B significa que el código fuente de la clase A menciona el nombre de la clase B, pero la clase B no menciona nada de la clase A. Así, en la figura 8.2, <code>FinancialDataMapper</code> conoce a <code>FinancialDataGateway</code> a través de una relación de implementación, pero <code>FinancialDataGateway</code> no sabe absolutamente nada de <code>FinancialDataMapper</code>.</p>
+
+<div class="com">
+  <span class="label">Comentario · errata del original</span>
+  El original en inglés escribe aquí <code>FinancialGateway</code>, pero se refiere a <code>FinancialDataGateway</code>, la interfaz de la figura. En esta traducción se ha usado el nombre correcto.
+</div>
+
+<p>Lo siguiente que hay que notar es que cada línea doble se cruza <i>en una sola dirección</i>. Esto significa que todas las relaciones entre componentes son unidireccionales, como muestra el grafo de componentes de la figura 8.3. Esas flechas apuntan hacia los componentes que queremos proteger del cambio.</p>
+
+<figure class="fig"><img src="fig8-3.svg" style="width:10.6cm"><figcaption><b>Figura 8.3</b> Las relaciones entre componentes son unidireccionales</figcaption></figure>
+
+<p>Lo repito: si el componente A debe estar protegido de los cambios del componente B, entonces el componente B debe depender del componente A.</p>
+
+<p>Queremos proteger al Controller de los cambios en los Presenters. Queremos proteger a los Presenters de los cambios en las Views. Queremos proteger al Interactor de los cambios en… bueno, en cualquier cosa.</p>
+
+<p>El Interactor está en la posición que mejor cumple el OCP. Los cambios en la Database, en el Controller, en los Presenters o en las Views no tendrán ningún impacto en el Interactor.</p>
+
+<p>¿Por qué debería el Interactor ocupar una posición tan privilegiada? Porque contiene las reglas de negocio. El Interactor contiene las políticas de más alto nivel de la aplicación. Todos los demás componentes se ocupan de cuestiones periféricas. El Interactor se ocupa de la cuestión central.</p>
+
+<p>Aunque el Controller es periférico respecto al Interactor, es central respecto a los Presenters y las Views. Y aunque los Presenters puedan ser periféricos respecto al Controller, son centrales respecto a las Views.</p>
+
+<p>Observa cómo esto crea una jerarquía de protección basada en la noción de «nivel». Los Interactors son el concepto de más alto nivel, así que son los más protegidos. Las Views están entre los conceptos de más bajo nivel, así que son las menos protegidas. Los Presenters son de un nivel más alto que las Views, pero de un nivel más bajo que el Controller o el Interactor.</p>
+
+<div class="com">
+  <span class="label">Comentario · la jerarquía de protección, de más a menos protegido</span>
+  <b>Interactor</b> (reglas de negocio) → <b>Controller</b> → <b>Presenters</b> → <b>Views</b> y <b>Database</b> (detalles).<br>
+  Regla para recordar: <i>las flechas de dependencia siempre apuntan hacia lo que es más importante y estable</i>. Lo que cambia a menudo (la interfaz gráfica, el formato PDF, la base de datos) depende de lo estable, y nunca al revés.
+</div>
+
+<p>Así es como funciona el OCP a nivel arquitectónico. Los arquitectos separan la funcionalidad según cómo, por qué y cuándo cambia, y después organizan esa funcionalidad separada en una jerarquía de componentes. Los componentes de nivel superior en esa jerarquía quedan protegidos de los cambios hechos en los componentes de nivel inferior.</p>
+
+<h2>Control de la dirección</h2>
+<p>Si el diseño de clases mostrado antes te horrorizó, míralo de nuevo. Gran parte de la complejidad de ese diagrama tenía como objetivo asegurar que las dependencias entre los componentes apuntaran en la dirección correcta.</p>
+
+<p>Por ejemplo, la interfaz <code>FinancialDataGateway</code>, situada entre <code>FinancialReportGenerator</code> y <code>FinancialDataMapper</code>, existe para invertir la dependencia que, de otro modo, habría apuntado del componente Interactor al componente Database. Lo mismo ocurre con la interfaz <code>FinancialReportPresenter</code> y con las dos interfaces View.</p>
+
+<div class="com">
+  <span class="label">Comentario · qué significa «invertir» la dependencia aquí</span>
+  Sin la interfaz, el generador llamaría directamente al <i>mapper</i>: <code>Generator → Mapper</code>. Así, el Interactor dependería de la base de datos, y cambiar de base de datos obligaría a recompilar las reglas de negocio. Con la interfaz, el Interactor define <b>qué necesita</b> (<code>FinancialDataGateway</code>) y la base de datos <b>se adapta</b> implementándola: <code>Mapper ▷ Gateway</code>. La flecha ahora cruza el límite de Database hacia Interactor. Esto es el DIP del capítulo 11 aplicado.
+</div>
+
+<h2>Ocultación de información</h2>
+<p>La interfaz <code>FinancialReportRequester</code> tiene otro propósito. Está ahí para evitar que <code>FinancialReportController</code> sepa demasiado sobre el funcionamiento interno del Interactor. Si esa interfaz no estuviera, el Controller tendría dependencias transitivas con las <code>FinancialEntities</code>.</p>
+
+<p>Las dependencias transitivas violan el principio general de que las entidades de software no deben depender de cosas que no usan directamente. Volveremos a encontrarnos con ese principio cuando hablemos del principio de segregación de interfaces y del principio de reutilización común.</p>
+
+<p>Así, aunque nuestra primera prioridad es proteger al Interactor de los cambios en el Controller, también queremos proteger al Controller de los cambios en el Interactor, ocultando el funcionamiento interno del Interactor.</p>
+
+<div class="com">
+  <span class="label">Comentario · dependencia transitiva</span>
+  Si A depende de B, y B depende de C, entonces A depende <b>indirectamente</b> (transitivamente) de C: un cambio en C puede obligar a recompilar A. Si el Controller usara directamente <code>FinancialReportGenerator</code>, que conoce las entidades, cualquier cambio en las entidades afectaría al Controller. La interfaz <code>Requester</code> corta esa cadena.
+</div>
+
+<h2>Conclusión</h2>
+<p>El OCP es una de las fuerzas que impulsan la arquitectura de los sistemas. El objetivo es que el sistema sea fácil de ampliar sin que los cambios tengan un gran impacto. Este objetivo se consigue dividiendo el sistema en componentes y organizando esos componentes en una jerarquía de dependencias que proteja a los componentes de nivel superior de los cambios en los componentes de nivel inferior.</p>
+</section>
+
+<!-- ===================================================== CAPÍTULO 9 -->
+<section class="cap" id="c9">
+<p class="num">9</p>
+<h1 data-cap="9 · LSP: principio de sustitución de Liskov">LSP: el principio de sustitución de Liskov<span class="en">LSP: THE LISKOV SUBSTITUTION PRINCIPLE</span></h1>
+<div class="ilustracion"><img src="il-lsp.png" alt=""></div>
+
+<p>En 1988, Barbara Liskov escribió lo siguiente como forma de definir los subtipos:</p>
+<blockquote>Lo que se busca aquí es algo como la siguiente propiedad de sustitución: si para cada objeto o1 de tipo S hay un objeto o2 de tipo T tal que, para todos los programas P definidos en términos de T, el comportamiento de P no cambia cuando o1 se sustituye por o2, entonces S es un subtipo de T.<span class="fn">Barbara Liskov, «Data Abstraction and Hierarchy», <i>SIGPLAN Notices</i> 23, 5 (mayo de 1988).</span></blockquote>
+
+<div class="com">
+  <span class="label">Comentario · la definición en lenguaje llano</span>
+  «Si un programa funciona con objetos de tipo <b>T</b> y le pasas en su lugar un objeto de tipo <b>S</b>, el programa debe seguir funcionando igual, sin enterarse del cambio. Si es así, S es un subtipo legítimo de T.»<br>
+  Dicho de otro modo: un subtipo debe <b>cumplir todas las promesas</b> (el contrato) de su tipo base, no solo tener los mismos métodos.
+</div>
+
+<p>Para entender esta idea, que se conoce como principio de sustitución de Liskov (LSP), veamos algunos ejemplos.</p>
+
+<h2>Guía para el uso de la herencia</h2>
+<p>Imagina que tenemos una clase llamada <code>License</code> (licencia), como se muestra en la figura 9.1. Esta clase tiene un método llamado <code>calcFee()</code> (calcular la tarifa), al que llama la aplicación <code>Billing</code> (facturación). Hay dos «subtipos» de <code>License</code>: <code>PersonalLicense</code> y <code>BusinessLicense</code>. Usan algoritmos diferentes para calcular la tarifa de la licencia.</p>
+
+<figure class="fig"><img src="fig9-1.svg" style="width:10.5cm"><figcaption><b>Figura 9.1</b> <code>License</code> y sus derivadas cumplen el LSP</figcaption></figure>
+
+<p>Este diseño cumple el LSP porque el comportamiento de la aplicación <code>Billing</code> no depende de ninguna manera de cuál de los dos subtipos use. Ambos subtipos son sustituibles por el tipo <code>License</code>.</p>
+
+<h2>El problema del cuadrado y el rectángulo</h2>
+<p>El ejemplo canónico de violación del LSP es el famoso (o infame, según se mire) problema del cuadrado y el rectángulo (figura 9.2).</p>
+
+<figure class="fig"><img src="fig9-2.svg" style="width:9.5cm"><figcaption><b>Figura 9.2</b> El infame problema del cuadrado y el rectángulo</figcaption></figure>
+
+<p>En este ejemplo, <code>Square</code> (cuadrado) no es un subtipo adecuado de <code>Rectangle</code> (rectángulo), porque la altura y la anchura de <code>Rectangle</code> pueden modificarse de forma independiente; en cambio, la altura y la anchura de <code>Square</code> deben cambiar a la vez. Como <code>User</code> cree que se está comunicando con un <code>Rectangle</code>, podría confundirse fácilmente. El siguiente código muestra por qué:</p>
+
+<pre>Rectangle r = …
+r.setW(5);
+r.setH(2);
+assert(r.area() == 10);</pre>
+
+<p>Si el código representado por «…» produjera un <code>Square</code>, la aserción fallaría.</p>
+
+<div class="com">
+  <span class="label">Comentario · paso a paso, por qué falla</span>
+  <code>setW</code> = fijar el ancho, <code>setH</code> = fijar el alto. Si <code>r</code> es en realidad un <code>Square</code>:
+  <ol>
+    <li><code>r.setW(5)</code>: como es un cuadrado, pone ancho = 5 <b>y también</b> alto = 5.</li>
+    <li><code>r.setH(2)</code>: pone alto = 2 <b>y también</b> ancho = 2.</li>
+    <li><code>r.area()</code> devuelve 2 × 2 = <b>4</b>, no 10. La aserción falla.</li>
+  </ol>
+  Matemáticamente, un cuadrado <i>es</i> un rectángulo. Pero en software, el «contrato» de <code>Rectangle</code> promete que ancho y alto son independientes, y <code>Square</code> rompe esa promesa. La herencia debe modelar <b>comportamiento sustituible</b>, no clasificaciones del mundo real.
+</div>
+
+<p>La única forma de protegerse de este tipo de violación del LSP es añadir mecanismos a <code>User</code> (como una sentencia <code>if</code>) que detecten si el <code>Rectangle</code> es, en realidad, un <code>Square</code>. Como el comportamiento de <code>User</code> depende de los tipos que usa, esos tipos no son sustituibles.</p>
+
+<h2>LSP y arquitectura</h2>
+<p>En los primeros años de la revolución de la orientación a objetos, veíamos el LSP como una forma de guiar el uso de la herencia, como se mostró en las secciones anteriores. Sin embargo, con los años el LSP se ha transformado en un principio más amplio de diseño de software, que se aplica a interfaces e implementaciones.</p>
+
+<p>Las interfaces en cuestión pueden tener muchas formas. Podríamos tener una interfaz al estilo de Java, implementada por varias clases. O varias clases de Ruby que comparten las mismas firmas de métodos. O un conjunto de servicios que responden todos a la misma interfaz REST.</p>
+
+<p>En todas estas situaciones, y en más, el LSP es aplicable, porque hay usuarios que dependen de interfaces bien definidas y de que las implementaciones de esas interfaces sean sustituibles.</p>
+
+<p>La mejor forma de entender el LSP desde un punto de vista arquitectónico es ver qué le ocurre a la arquitectura de un sistema cuando se viola el principio.</p>
+
+<h2>Ejemplo de violación del LSP</h2>
+<p>Supongamos que estamos construyendo un agregador de muchos servicios de despacho de taxis. Los clientes usan nuestro sitio web para encontrar el taxi más adecuado, sea de la empresa que sea. Una vez que el cliente decide, nuestro sistema despacha el taxi elegido usando un servicio REST.</p>
+
+<p>Supongamos ahora que la URI del servicio REST de despacho forma parte de la información de la base de datos de conductores. Una vez que nuestro sistema ha elegido un conductor adecuado para el cliente, obtiene esa URI del registro del conductor y la usa para despachar al conductor.</p>
+
+<p>Supongamos que el conductor Bob tiene una URI de despacho como esta:</p>
+<pre>purplecab.com/driver/Bob</pre>
+
+<p>Nuestro sistema añadirá la información del despacho a esta URI y la enviará con una petición PUT, así:</p>
+<pre>purplecab.com/driver/Bob
+       /pickupAddress/24 Maple St.
+       /pickupTime/153
+       /destination/ORD</pre>
+
+<div class="com">
+  <span class="label">Comentario · qué significa la URI</span>
+  <code>pickupAddress</code> = dirección de recogida (calle Maple n.º 24); <code>pickupTime</code> = hora de recogida (153 es un valor de ejemplo con el formato que defina el servicio); <code>destination</code> = destino (ORD es el código del aeropuerto O’Hare de Chicago). <i>Purple Cab</i> («Taxi Morado») es una empresa inventada.
+</div>
+
+<p>Evidentemente, esto significa que todos los servicios de despacho, de todas las empresas, deben cumplir la misma interfaz REST. Deben tratar los campos <code>pickupAddress</code>, <code>pickupTime</code> y <code>destination</code> de forma idéntica.</p>
+
+<p>Supongamos ahora que la empresa de taxis Acme contrató a unos programadores que no leyeron la especificación con mucha atención. Abreviaron el campo <code>destination</code> a <code>dest</code>. Acme es la mayor empresa de taxis de nuestra zona, y la exesposa del director general de Acme es la nueva esposa de nuestro director general, y… bueno, ya te haces una idea. ¿Qué le pasaría a la arquitectura de nuestro sistema?</p>
+
+<p>Obviamente, tendríamos que añadir un caso especial. La petición de despacho para cualquier conductor de Acme tendría que construirse con reglas distintas de las de todos los demás conductores.</p>
+
+<p>La forma más sencilla de conseguirlo sería añadir una sentencia <code>if</code> al módulo que construye el comando de despacho:</p>
+<pre>if (driver.getDispatchUri().startsWith("acme.com"))…</pre>
+
+<p>Pero, por supuesto, ningún arquitecto que se precie permitiría que existiera algo así en el sistema. Poner la palabra «acme» en el propio código abre la puerta a todo tipo de errores horribles y misteriosos, por no hablar de las brechas de seguridad.</p>
+
+<p>Por ejemplo, ¿qué pasaría si Acme tuviera todavía más éxito y comprara la empresa Purple Taxi? ¿Y si la empresa fusionada mantuviera las marcas y los sitios web por separado, pero unificara todos los sistemas de las empresas originales? ¿Tendríamos que añadir otra sentencia <code>if</code> para «purple»?</p>
+
+<p>Nuestro arquitecto tendría que aislar el sistema de errores como este creando algún tipo de módulo de creación de comandos de despacho, controlado por una base de datos de configuración indexada por la URI de despacho. Los datos de configuración podrían tener un aspecto así:</p>
+
+<table class="cfg">
+  <tr><th>URI</th><th>Formato de despacho</th></tr>
+  <tr><td class="mono">Acme.com</td><td class="mono">/pickupAddress/%s/pickupTime/%s/dest/%s</td></tr>
+  <tr><td class="mono">*.*</td><td class="mono">/pickupAddress/%s/pickupTime/%s/destination/%s</td></tr>
+</table>
+
+<div class="com">
+  <span class="label">Comentario · cómo leer la tabla</span>
+  Cada fila dice «para las URI que coincidan con este patrón, construye la petición con este formato». <code>%s</code> es el hueco donde se inserta cada valor, y <code>*.*</code> significa «cualquier otro dominio». Así el código ya no menciona «acme», pero hemos tenido que construir un mecanismo de configuración entero <b>solo porque una implementación no era sustituible</b>. Ese es el coste arquitectónico de violar el LSP.
+</div>
+
+<p>Y así, nuestro arquitecto ha tenido que añadir un mecanismo importante y complejo para resolver el hecho de que las interfaces de los servicios REST no son todas sustituibles.</p>
+
+<h2>Conclusión</h2>
+<p>El LSP puede, y debe, extenderse al nivel de la arquitectura. Una simple violación de la sustituibilidad puede contaminar la arquitectura de un sistema con una cantidad considerable de mecanismos adicionales.</p>
+</section>
+
+<!-- ===================================================== CAPÍTULO 10 -->
+<section class="cap" id="c10">
+<p class="num">10</p>
+<h1 data-cap="10 · ISP: principio de segregación de interfaces">ISP: el principio de segregación de interfaces<span class="en">ISP: THE INTERFACE SEGREGATION PRINCIPLE</span></h1>
+<div class="ilustracion"><img src="il-isp.png" alt=""></div>
+
+<p>El principio de segregación de interfaces (ISP) debe su nombre al diagrama de la figura 10.1.</p>
+
+<figure class="fig"><img src="fig10-1.svg" style="width:10cm"><figcaption><b>Figura 10.1</b> El principio de segregación de interfaces</figcaption></figure>
+
+<p>En la situación ilustrada en la figura 10.1, hay varios usuarios que usan las operaciones de la clase <code>OPS</code>. Supongamos que <code>User1</code> solo usa <code>op1</code>, <code>User2</code> solo usa <code>op2</code> y <code>User3</code> solo usa <code>op3</code>.</p>
+
+<p>Ahora imagina que <code>OPS</code> es una clase escrita en un lenguaje como Java. Evidentemente, en ese caso el código fuente de <code>User1</code> dependerá sin querer de <code>op2</code> y <code>op3</code>, aunque no las llame. Esta dependencia significa que un cambio en el código fuente de <code>op2</code> en <code>OPS</code> obligará a recompilar y volver a desplegar <code>User1</code>, aunque en realidad no haya cambiado nada que le importe.</p>
+
+<p>Este problema puede resolverse separando las operaciones en interfaces, como se muestra en la figura 10.2.</p>
+
+<p>De nuevo, si imaginamos que esto está implementado en un lenguaje de tipado estático como Java, el código fuente de <code>User1</code> dependerá de <code>U1Ops</code> y de <code>op1</code>, pero no de <code>OPS</code>. Así, un cambio en <code>OPS</code> que no le importe a <code>User1</code> no hará que <code>User1</code> deba recompilarse y volver a desplegarse.</p>
+
+<figure class="fig"><img src="fig10-2.svg" style="width:10cm"><figcaption><b>Figura 10.2</b> Operaciones segregadas</figcaption></figure>
+
+<div class="com">
+  <span class="label">Comentario · antes y después</span>
+  <b>Figura 10.1 (antes):</b> los tres usuarios apuntan a la misma clase grande. Cada uno «ve» las tres operaciones, aunque solo use una.<br>
+  <b>Figura 10.2 (después):</b> cada usuario apunta a una interfaz pequeña hecha a su medida (<code>U1Ops</code>, <code>U2Ops</code>, <code>U3Ops</code>). <code>OPS</code> sigue existiendo y las implementa todas (triángulos huecos). La lógica no cambia; lo que cambia es <b>de qué depende cada usuario</b>.<br>
+  Ejemplo cotidiano: es como un mando de la tele con 80 botones cuando la abuela solo usa encender y cambiar de canal. Mejor darle un mando con dos botones.
+</div>
+
+<h2>ISP y el lenguaje</h2>
+<p>Evidentemente, la descripción anterior depende de forma crítica del tipo de lenguaje. Los lenguajes de tipado estático, como Java, obligan a los programadores a crear declaraciones que los usuarios deben importar, usar (<code>use</code>) o incluir (<code>include</code>) de alguna otra forma. Son estas declaraciones incluidas en el código fuente las que crean las dependencias de código fuente que obligan a recompilar y volver a desplegar.</p>
+
+<p>En los lenguajes de tipado dinámico, como Ruby y Python, esas declaraciones no existen en el código fuente. En su lugar, se infieren en tiempo de ejecución. Por tanto, no hay dependencias de código fuente que obliguen a recompilar y volver a desplegar. Esta es la razón principal de que los lenguajes de tipado dinámico creen sistemas más flexibles y menos acoplados que los de tipado estático.</p>
+
+<p>Este hecho podría llevarte a concluir que el ISP es una cuestión de lenguaje, más que de arquitectura.</p>
+
+<h2>ISP y arquitectura</h2>
+<p>Si das un paso atrás y miras las motivaciones de fondo del ISP, verás que esconde una preocupación más profunda. En general, es perjudicial depender de módulos que contienen más de lo que necesitas. Esto es obviamente cierto para las dependencias de código fuente, que pueden obligar a recompilaciones y despliegues innecesarios, pero también lo es a un nivel mucho más alto: el arquitectónico.</p>
+
+<p>Pensemos, por ejemplo, en un arquitecto que trabaja en un sistema S y quiere incluir en él cierto <i>framework</i> F. Supongamos ahora que los autores de F lo han ligado a una base de datos concreta, D. Así, S depende de F, que a su vez depende de D (figura 10.3).</p>
+
+<figure class="fig"><img src="fig10-3.svg" style="width:12cm"><figcaption><b>Figura 10.3</b> Una arquitectura problemática</figcaption></figure>
+
+<p>Supongamos ahora que D contiene funcionalidades que F no usa y que, por tanto, a S no le importan. Los cambios en esas funcionalidades de D pueden obligar a volver a desplegar F y, por tanto, a volver a desplegar S. Peor aún: un fallo en una de las funcionalidades de D puede provocar fallos en F y en S.</p>
+
+<div class="com">
+  <span class="label">Comentario · un ejemplo moderno</span>
+  Instalas una biblioteca para enviar correos y resulta que arrastra un ORM entero y un driver de base de datos que nunca usarás. Si ese driver tiene una vulnerabilidad o una actualización incompatible, <b>tu</b> sistema queda afectado y tienes que actualizar y volver a desplegar por algo que ni siquiera usabas. El ISP a nivel de arquitectura dice: <i>vigila el «equipaje» que traen tus dependencias</i>.
+</div>
+
+<h2>Conclusión</h2>
+<p>La lección aquí es que depender de algo que trae un equipaje que no necesitas puede causarte problemas que no esperabas.</p>
+
+<p>Exploraremos esta idea con más detalle cuando tratemos el principio de reutilización común (<i>Common Reuse Principle</i>) en el capítulo 13, «Cohesión de componentes».</p>
+</section>
+
+<!-- ===================================================== CAPÍTULO 11 -->
+<section class="cap" id="c11">
+<p class="num">11</p>
+<h1 data-cap="11 · DIP: principio de inversión de dependencias">DIP: el principio de inversión de dependencias<span class="en">DIP: THE DEPENDENCY INVERSION PRINCIPLE</span></h1>
+<div class="ilustracion"><img src="il-dip.png" alt=""></div>
+
+<p>El principio de inversión de dependencias (DIP) nos dice que los sistemas más flexibles son aquellos en los que las dependencias de código fuente se refieren solo a abstracciones, no a concreciones.</p>
+
+<p>En un lenguaje de tipado estático, como Java, esto significa que las sentencias <code>use</code>, <code>import</code> e <code>include</code> solo deberían referirse a módulos fuente que contengan interfaces, clases abstractas o algún otro tipo de declaración abstracta. No se debería depender de nada concreto.</p>
+
+<p>La misma regla se aplica a los lenguajes de tipado dinámico, como Ruby y Python. Las dependencias de código fuente no deberían referirse a módulos concretos. Sin embargo, en estos lenguajes es un poco más difícil definir qué es un módulo concreto. En particular, es cualquier módulo en el que estén implementadas las funciones a las que se llama.</p>
+
+<p>Evidentemente, tratar esta idea como una regla absoluta no es realista, porque los sistemas de software tienen que depender de muchos recursos concretos. Por ejemplo, la clase <code>String</code> de Java es concreta, y no sería realista intentar forzarla a ser abstracta. La dependencia de código fuente de la clase concreta <code>java.lang.String</code> no puede ni debe evitarse.</p>
+
+<p>En comparación, la clase <code>String</code> es muy estable. Los cambios en esa clase son muy raros y están estrictamente controlados. Programadores y arquitectos no tienen que preocuparse por cambios frecuentes y caprichosos en <code>String</code>.</p>
+
+<p>Por estas razones, cuando se trata del DIP tendemos a ignorar el trasfondo estable que forman los recursos del sistema operativo y de la plataforma. Toleramos esas dependencias concretas porque sabemos que podemos confiar en que no cambiarán.</p>
+
+<p>De lo que queremos evitar depender es de los elementos concretos <i>volátiles</i> de nuestro sistema. Esos son los módulos que estamos desarrollando activamente y que cambian con frecuencia.</p>
+
+<div class="com">
+  <span class="label">Comentario · la distinción que importa: estable frente a volátil</span>
+  El DIP no prohíbe depender de cosas concretas. Prohíbe depender de cosas concretas <b>que cambian a menudo</b>.
+  <ul>
+    <li><b>Aceptable:</b> <code>String</code>, <code>List</code>, la biblioteca estándar, el sistema operativo. Casi nunca cambian.</li>
+    <li><b>Evitar:</b> tu clase <code>MySqlUserRepository</code>, tu servicio de pagos, tu controlador web. Los estás escribiendo y cambiando cada semana.</li>
+  </ul>
+  (Errata menor del original: escribe <code>java.lang.string</code> en minúscula; la clase real es <code>java.lang.String</code>.)
+</div>
+
+<h2>Abstracciones estables</h2>
+<p>Todo cambio en una interfaz abstracta se corresponde con un cambio en sus implementaciones concretas. En cambio, los cambios en las implementaciones concretas no siempre requieren cambios en las interfaces que implementan; de hecho, normalmente no los requieren. Por tanto, las interfaces son menos volátiles que las implementaciones.</p>
+
+<p>De hecho, los buenos diseñadores y arquitectos de software se esfuerzan mucho por reducir la volatilidad de las interfaces. Intentan encontrar formas de añadir funcionalidad a las implementaciones sin modificar las interfaces. Esto es lo más básico del diseño de software.</p>
+
+<p>La consecuencia, entonces, es que las arquitecturas de software estables son las que evitan depender de concreciones volátiles y favorecen el uso de interfaces abstractas estables. Esta consecuencia se reduce a un conjunto de prácticas de programación muy concretas:</p>
+<ul>
+  <li><b>No te refieras a clases concretas volátiles.</b> Refiérete en su lugar a interfaces abstractas. Esta regla se aplica en todos los lenguajes, sean de tipado estático o dinámico. También impone fuertes restricciones a la creación de objetos y, en general, obliga a usar fábricas abstractas (<i>Abstract Factories</i>).</li>
+  <li><b>No derives de clases concretas volátiles.</b> Es un corolario de la regla anterior, pero merece una mención especial. En los lenguajes de tipado estático, la herencia es la más fuerte y rígida de todas las relaciones de código fuente; por consiguiente, debe usarse con mucho cuidado. En los lenguajes de tipado dinámico, la herencia es un problema menor, pero sigue siendo una dependencia, y la cautela siempre es la opción más sensata.</li>
+  <li><b>No sobrescribas funciones concretas.</b> Las funciones concretas a menudo requieren dependencias de código fuente. Cuando sobrescribes esas funciones, no eliminas esas dependencias; de hecho, las heredas. Para gestionarlas, deberías convertir la función en abstracta y crear varias implementaciones.</li>
+  <li><b>Nunca menciones el nombre de nada que sea concreto y volátil.</b> En realidad, esto no es más que una reformulación del propio principio.</li>
+</ul>
+
+<h2>Fábricas</h2>
+<p>Para cumplir estas reglas, la creación de objetos concretos volátiles requiere un tratamiento especial. Esta precaución está justificada porque, prácticamente en todos los lenguajes, crear un objeto requiere una dependencia de código fuente de la definición concreta de ese objeto.</p>
+
+<p>En la mayoría de los lenguajes orientados a objetos, como Java, usaríamos una fábrica abstracta (<i>Abstract Factory</i>) para gestionar esta dependencia indeseable.</p>
+
+<p>El diagrama de la figura 11.1 muestra la estructura. <code>Application</code> usa <code>ConcreteImpl</code> a través de la interfaz <code>Service</code>. Sin embargo, <code>Application</code> tiene que crear de algún modo instancias de <code>ConcreteImpl</code>. Para conseguirlo sin crear una dependencia de código fuente de <code>ConcreteImpl</code>, <code>Application</code> llama al método <code>makeSvc</code> de la interfaz <code>ServiceFactory</code>. Este método lo implementa la clase <code>ServiceFactoryImpl</code>, que deriva de <code>ServiceFactory</code>. Esa implementación instancia <code>ConcreteImpl</code> y la devuelve como un <code>Service</code>.</p>
+
+<figure class="fig"><img src="fig11-1.svg" style="width:12cm"><figcaption><b>Figura 11.1</b> Uso del patrón Fábrica Abstracta (<i>Abstract Factory</i>) para gestionar la dependencia<br><span style="color:#555">(Las etiquetas «lado abstracto» y «lado concreto» se han añadido en esta versión. En el original, la línea curva es roja.)</span></figcaption></figure>
+
+<p>La línea curva de la figura 11.1 es un límite arquitectónico. Separa lo abstracto de lo concreto. Todas las dependencias de código fuente cruzan esa línea curva apuntando en la misma dirección: hacia el lado abstracto.</p>
+
+<p>La línea curva divide el sistema en dos componentes: uno abstracto y otro concreto. El componente abstracto contiene todas las reglas de negocio de alto nivel de la aplicación. El componente concreto contiene todos los detalles de implementación que esas reglas de negocio manipulan.</p>
+
+<p>Observa que el flujo de control cruza la línea curva en la dirección opuesta a la de las dependencias de código fuente. Las dependencias de código fuente están invertidas respecto al flujo de control, y por eso a este principio lo llamamos <i>inversión de dependencias</i>.</p>
+
+<div class="com allow-break">
+  <span class="label">Comentario · la «inversión», vista en un dibujo</span>
+  <div class="fig"><img src="fig-com-dip.svg" style="width:13cm"></div>
+  En ejecución, <code>Application</code> acaba ejecutando código de <code>ConcreteImpl</code> (flecha discontinua, de izquierda a derecha). Pero en el código fuente, <code>Application</code> solo menciona <code>Service</code>, y <code>ConcreteImpl</code> también apunta hacia <code>Service</code>. La flecha de <code>ConcreteImpl</code> va <b>en sentido contrario</b> al flujo de control: por eso se habla de «inversión».<br><br>
+  <b>Ejemplo mínimo en código</b> (Java simplificado; no está en el libro):
+<pre>// ---- lado abstracto (reglas de negocio) ----
+interface Service        { void execute(); }
+interface ServiceFactory { Service makeSvc(); }
+
+class Application {
+  private final ServiceFactory factory;
+  Application(ServiceFactory f) { this.factory = f; }
+  void run() { factory.makeSvc().execute(); } // nunca nombra ConcreteImpl
+}
+
+// ---- lado concreto (detalles) ----
+class ConcreteImpl implements Service {
+  public void execute() { /* detalle concreto */ }
+}
+class ServiceFactoryImpl implements ServiceFactory {
+  public Service makeSvc() { return new ConcreteImpl(); } // el único "new"
+}
+
+// ---- main: el componente concreto que lo conecta todo ----
+public static void main(String[] a) {
+  new Application(new ServiceFactoryImpl()).run();
+}</pre>
+  Si mañana cambias <code>ConcreteImpl</code> por otra implementación, <code>Application</code> no se toca ni se recompila. El libro propone pasar la fábrica mediante una variable global; aquí se pasa por el constructor (inyección de dependencias), que es la forma más habitual hoy en día. La idea es la misma.
+</div>
+
+<h2>Componentes concretos</h2>
+<p>El componente concreto de la figura 11.1 contiene una única dependencia, así que viola el DIP. Esto es lo habitual. Las violaciones del DIP no pueden eliminarse por completo, pero pueden reunirse en un número reducido de componentes concretos y mantenerse separadas del resto del sistema.</p>
+
+<p>La mayoría de los sistemas contendrán al menos un componente concreto de este tipo, a menudo llamado <code>main</code> porque contiene la función <code>main</code>.<span class="fn">En otras palabras, la función que invoca el sistema operativo cuando la aplicación se inicia por primera vez.</span> En el caso ilustrado en la figura 11.1, la función <code>main</code> instanciaría <code>ServiceFactoryImpl</code> y colocaría esa instancia en una variable global de tipo <code>ServiceFactory</code>. Después, <code>Application</code> accedería a la fábrica a través de esa variable global.</p>
+
+<div class="com">
+  <span class="label">Comentario · cuál es la «única dependencia» que viola el DIP</span>
+  Es la flecha «crea» de <code>ServiceFactoryImpl</code> a <code>ConcreteImpl</code>: para hacer <code>new ConcreteImpl()</code>, alguien tiene que nombrar la clase concreta. Es inevitable, así que se <b>arrincona</b> en un único sitio del lado concreto (la fábrica o <code>main</code>) y no se reparte por todo el código.
+</div>
+
+<h2>Conclusión</h2>
+<p>A medida que avancemos en este libro y tratemos principios arquitectónicos de nivel superior, el DIP aparecerá una y otra vez. Será el principio organizativo más visible en nuestros diagramas de arquitectura. La línea curva de la figura 11.1 se convertirá en los límites arquitectónicos de los capítulos posteriores. La forma en que las dependencias cruzan esa línea curva en una sola dirección, y hacia entidades más abstractas, se convertirá en una nueva regla que llamaremos <b>la regla de dependencia</b> (<i>Dependency Rule</i>).</p>
+</section>
+
+<!-- ===================================================== RESUMEN -->
+<section class="cap" id="resumen">
+<h1 style="margin-top:0" data-cap="Resumen final">Resumen final</h1>
+<div class="com" style="font-size:9.6pt">
+  <span class="label">Comentario · esta página completa es un añadido para repasar; no forma parte del libro</span>
+  <table>
+    <tr><th style="width:15%">Principio</th><th style="width:32%">En una frase</th><th style="width:28%">Señal de que lo violas</th><th>Cómo se arregla</th></tr>
+    <tr><td><b>SRP</b><br>Responsabilidad única</td><td>Cada módulo responde ante <b>un solo actor</b> (grupo de personas que pide cambios).</td><td>Un mismo archivo cambia por peticiones de áreas distintas; conflictos de <i>merge</i> frecuentes.</td><td>Separar el código por actor (fig. 7.3–7.5); usar una fachada si hace falta.</td></tr>
+    <tr><td><b>OCP</b><br>Abierto-cerrado</td><td>Añadir comportamiento <b>con código nuevo</b>, sin modificar el existente.</td><td>Cada nueva funcionalidad obliga a tocar las reglas de negocio.</td><td>SRP más DIP: separar responsabilidades y hacer que las dependencias apunten hacia lo más importante (fig. 8.2–8.3).</td></tr>
+    <tr><td><b>LSP</b><br>Sustitución de Liskov</td><td>Las implementaciones deben ser <b>intercambiables</b> sin que quien las usa note la diferencia.</td><td>Aparecen <code>if (es de tipo X)</code> o <code>if (url empieza por "acme")</code>.</td><td>Respetar el contrato de la interfaz; si no se puede, no heredar o no implementar esa interfaz.</td></tr>
+    <tr><td><b>ISP</b><br>Segregación de interfaces</td><td>No depender de cosas que <b>no usas</b>.</td><td>Recompilas o redespliegas por cambios que no te afectan; dependencias que arrastran «equipaje».</td><td>Interfaces pequeñas por cliente (fig. 10.2); elegir dependencias ligeras.</td></tr>
+    <tr><td><b>DIP</b><br>Inversión de dependencias</td><td>El código de alto nivel depende de <b>abstracciones</b>; los detalles también dependen de ellas.</td><td>Las reglas de negocio importan clases de base de datos, web o frameworks.</td><td>Interfaces del lado de las políticas, fábricas abstractas, y todo el <code>new</code> concreto en <code>main</code> (fig. 11.1).</td></tr>
+  </table>
+  <p><b>Cómo encajan:</b> el SRP decide <i>dónde cortar</i>; el DIP decide <i>hacia dónde apuntan las flechas</i> en cada corte; el ISP mantiene los cortes <i>delgados</i>; el LSP garantiza que lo que hay a cada lado del corte sea <i>intercambiable</i>; y el resultado de todo junto es el OCP: un sistema que crece <i>añadiendo</i> en lugar de <i>modificando</i>.</p>
+  <p><b>Lo que viene en el libro:</b> el SRP reaparece como <i>principio de cierre común</i> (cap. 13), el ISP como <i>principio de reutilización común</i> (cap. 13), y la línea curva del DIP se convierte en la <i>regla de dependencia</i> de la arquitectura limpia (Parte V).</p>
+</div>
+</section>
+
+</body>
+</html>

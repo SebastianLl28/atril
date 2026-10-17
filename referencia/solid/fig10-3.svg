@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="70" viewBox="0 0 520 70" font-family="Noto Sans, DejaVu Sans, sans-serif">
+<rect width="520" height="70" fill="white"/>
+<rect x="10" y="12" width="130" height="40" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="75.0" y="36.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Sistema S</text>
+<rect x="195" y="12" width="130" height="40" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="260.0" y="36.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Framework F</text>
+<rect x="380" y="12" width="130" height="40" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="445.0" y="36.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Base de datos D</text>
+<polyline points="140,32 194,32" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="183.9509999659314,36.4741030738338 194,32 183.9509999659314,27.525896926166197" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="325,32 379,32" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="368.9509999659314,36.4741030738338 379,32 368.9509999659314,27.525896926166197" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+</svg>

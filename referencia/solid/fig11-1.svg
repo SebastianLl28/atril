@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="320" viewBox="0 0 500 320" font-family="Noto Sans, DejaVu Sans, sans-serif">
+<rect width="500" height="320" fill="white"/>
+<path d="M0,224 C110,238 195,230 240,165 S330,95 500,90" fill="none" stroke="#9a9a9a" stroke-width="9" stroke-linecap="round" opacity="0.75"/>
+<text x="16" y="40" font-size="10" font-weight="bold" font-style="normal" text-anchor="start" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#666">LADO ABSTRACTO</text>
+<text x="490" y="300" font-size="10" font-weight="bold" font-style="normal" text-anchor="end" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#666">LADO CONCRETO</text>
+<rect x="40" y="55" width="150" height="40" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="115.0" y="79.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Application</text>
+<rect x="300" y="20" width="150" height="40" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="375.0" y="44.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Service</text>
+<rect x="416" y="13" width="34" height="13" fill="white"/>
+<text x="433" y="24" font-size="10.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" fill="#111">&lt;I&gt;</text>
+<rect x="40" y="125" width="150" height="67" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="115.0" y="143.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Service</text>
+<text x="115.0" y="159.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Factory</text>
+<polyline points="40,169 190,169" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="48" y="185" font-size="11.5" font-weight="normal" font-style="normal" text-anchor="start" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">+ makeSvc</text>
+<rect x="156" y="118" width="34" height="13" fill="white"/>
+<text x="173" y="129" font-size="10.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" fill="#111">&lt;I&gt;</text>
+<rect x="300" y="125" width="150" height="50" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="375.0" y="146.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Concrete</text>
+<text x="375.0" y="162.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Impl</text>
+<rect x="40" y="255" width="150" height="67" fill="white" stroke="#111" stroke-width="1.3"/>
+<text x="115.0" y="273.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Service</text>
+<text x="115.0" y="289.5" font-size="12.5" font-weight="bold" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">Factory Impl</text>
+<polyline points="40,299 190,299" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="48" y="315" font-size="11.5" font-weight="normal" font-style="normal" text-anchor="start" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">+ makeSvc</text>
+<polyline points="190,70 240,70 240,45 299,45" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="288.9509999659314,49.4741030738338 299,45 288.9509999659314,40.5258969261662" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="115,95 115,124" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="110.5258969261662,113.95099996593139 115,124 119.4741030738338,113.95099996593139" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="190,140 320,62" fill="none" stroke="#111" stroke-width="1.3" stroke-dasharray="5,4" stroke-linejoin="round"/>
+<polyline points="313.6849606011338,71.0066795985406 320,62 309.0811465194683,63.33365612909814" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="375,125 375.0,74.0" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polygon points="375.0,61.0 381.5,74.0 368.5,74.0" fill="white" stroke="#111" stroke-width="1.3"/>
+<polyline points="115,255 115.0,205.0" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polygon points="115.0,192.0 121.5,205.0 108.5,205.0" fill="white" stroke="#111" stroke-width="1.3"/>
+<polyline points="190,285 375,285 375,176" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<polyline points="379.4741030738338,186.0490000340686 375,176 370.5258969261662,186.0490000340686" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/>
+<text x="285" y="278" font-size="11" font-weight="normal" font-style="normal" text-anchor="middle" font-family="Noto Sans, DejaVu Sans, sans-serif" fill="#111">«crea»</text>
+</svg>
