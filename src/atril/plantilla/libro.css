@@ -1,0 +1,71 @@
+/* Plantilla de impresión de Atril (carta, WeasyPrint). Sale de referencia/solid/solid.html.
+   Ajustes de una parte concreta: en un <style> dentro de su HTML, no aquí. */
+@page {
+  size: letter;
+  margin: 2.2cm 2.1cm 2.3cm 2.1cm;
+  @bottom-center { content: counter(page); font: 9pt "Noto Sans"; color: #444; }
+  @top-right { content: string(cap); font: 8pt "Noto Sans"; color: #666; }
+}
+@page :first { @bottom-center { content: none; } @top-right { content: none; } }
+@page portada { @bottom-center { content: none; } @top-right { content: none; } }
+
+html { font-family: "Noto Serif", "DejaVu Serif", serif; font-size: 10.6pt; line-height: 1.5; color: #111; }
+body { margin: 0; }
+p { margin: 0 0 0.62em; text-align: justify; hyphens: auto; orphans: 3; widows: 3; }
+h1, h2, h3, .fig figcaption, .com .label, .portada, .indice { font-family: "Noto Sans", sans-serif; }
+
+.portada { page: portada; page-break-after: always; padding-top: 5.5cm; }
+.portada .kicker { font-size: 10pt; letter-spacing: .18em; color: #555; text-transform: uppercase; }
+.portada h1 { font-size: 30pt; line-height: 1.1; margin: .3em 0 .2em; }
+.portada .sub { font-size: 13pt; color: #333; margin-bottom: 2.4cm; }
+.portada .meta { font-size: 9.5pt; color: #333; border-top: 1px solid #999; padding-top: .8em; }
+.portada .meta p { text-align: left; }
+
+.indice { page-break-after: always; }
+.indice h2 { font-size: 15pt; margin: 0 0 .8em; }
+.indice ol { list-style: none; padding: 0; margin: 0 0 1.4em; }
+.indice li { display: flex; font-size: 10.5pt; padding: .28em 0; border-bottom: 1px dotted #bbb; }
+.indice li a { color: #111; text-decoration: none; flex: 1; }
+.indice li a::after { content: target-counter(attr(href), page); float: right; }
+
+section.cap { page-break-before: always; }
+.num { font-family: "Noto Sans", sans-serif; font-size: 34pt; font-weight: 300; color: #555; line-height: 1; margin: 0; }
+h1 { font-size: 19pt; line-height: 1.2; margin: .15em 0 .3em; string-set: cap attr(data-cap); }
+h1 .en { display: block; font-size: 9.5pt; font-weight: normal; color: #666; letter-spacing: .04em; margin-top: .35em; }
+h2 { font-size: 11.5pt; letter-spacing: .05em; text-transform: uppercase; margin: 1.5em 0 .5em; page-break-after: avoid; }
+.ilustracion { text-align: center; margin: .6em 0 1.3em; }
+.ilustracion img { height: 4.2cm; }
+
+blockquote { margin: .7em 2em .9em; font-style: italic; font-size: 10.8pt; }
+blockquote.def { font-style: normal; font-weight: bold; text-align: center; margin: .9em 1.5em 1em; }
+ul { margin: .2em 0 .8em; padding-left: 1.4em; }
+li { margin-bottom: .3em; text-align: justify; }
+code, .mono { font-family: "Noto Sans Mono", "DejaVu Sans Mono", monospace; font-size: 9.2pt; }
+pre { font-family: "Noto Sans Mono", monospace; font-size: 9pt; line-height: 1.45; background: #f3f3f3;
+      border: 1px solid #ccc; padding: .6em .9em; margin: .5em 0 1em; white-space: pre-wrap; page-break-inside: avoid; }
+table.cfg { page-break-inside: avoid; border-collapse: collapse; margin: .5em auto 1em; font-size: 9pt; }
+table.cfg th, table.cfg td { border: 1px solid #888; padding: .3em .7em; text-align: left; }
+table.cfg th { font-family: "Noto Sans", sans-serif; background: #eee; }
+
+.fig { margin: 1em 0 1.2em; text-align: center; page-break-inside: avoid; }
+.fig img { max-width: 100%; }
+.fig figcaption { font-size: 8.8pt; color: #333; margin-top: .45em; }
+.fig figcaption b { color: #000; }
+
+/* Comentarios añadidos: no forman parte del libro */
+.com { border: 1px solid #555; border-left: 5px solid #111; background: #ececec; padding: .55em .9em .35em;
+       margin: .9em 0 1.1em; font-family: "Noto Sans", sans-serif; font-size: 9.3pt; line-height: 1.45; page-break-inside: avoid; }
+.com .label { display: block; font-size: 7.6pt; font-weight: bold; letter-spacing: .12em; text-transform: uppercase; color: #000; margin-bottom: .35em; }
+.com p, .com li { text-align: left; }
+.com ul, .com ol { margin: .2em 0 .5em; padding-left: 1.3em; }
+.com pre { background: #fff; font-size: 8.5pt; }
+.com table { border-collapse: collapse; margin: .3em 0 .6em; width: 100%; }
+.com td, .com th { border: 1px solid #999; padding: .25em .5em; text-align: left; vertical-align: top; background: #fff; }
+.com th { background: #ddd; }
+.com .fig { margin: .4em 0 .6em; }
+.allow-break { page-break-inside: auto; }
+
+.fn { float: footnote; font-style: normal; font-size: 8.3pt; line-height: 1.35; text-align: left; }
+::footnote-call { content: counter(footnote); font-size: 7pt; vertical-align: super; line-height: 0; }
+::footnote-marker { content: counter(footnote) ". "; }
+@page { @footnote { border-top: 1px solid #999; padding-top: .4em; margin-top: .6em; } }

@@ -133,16 +133,21 @@ dar las mismas 32 páginas. Eso confirma que las fuentes y la plantilla funciona
 - el mapa da 77→62 y 108→86, a ±1 página antes de corregir;
 - el paquete no contiene «Machine Translated».
 
-### Fase 2 · Skill `/libro` y salida a PDF (la parte con IA)
-- `plantilla/libro.css` + `plantilla/base.html`, sacados de `solid.html`: portada, índice con
-  números de página, capítulos, figuras, recuadros COMENTARIO, notas al pie
-- `src/atril/svg.py`: `figs.py` convertido en librería (clases UML, flechas de uso y de
-  implementación, componentes, actores, almacenes)
-- `src/atril/construir.py`, que se ejecuta con `atril construir <parte>`:
+### Fase 2 · Skill `/libro` y salida a PDF (la parte con IA) ✅
+- [x] `src/atril/plantilla/libro.css` + `base.html`, sacados de `solid.html`: portada, índice
+      con números de página, capítulos, figuras, recuadros COMENTARIO, notas al pie.
+      `atril iniciar <carpeta>` crea `salida/<parte>.html` desde la plantilla, con lo que se
+      sabe sin IA (libro, parte, páginas) ya puesto.
+- [x] `src/atril/svg.py`: `figs.py` convertido en librería (clases UML, flechas de uso y de
+      implementación, componentes, actores, procesos, almacenes). `referencia/solid/figs.py`
+      ya la usa y genera los mismos SVG byte a byte.
+- [x] `src/atril/construir.py`, que se ejecuta con `atril construir <carpeta>`:
   - HTML → PDF con WeasyPrint;
-  - 2 por hoja con pypdf;
-  - hoja de miniaturas para revisión con PyMuPDF.
-- `.claude/skills/libro/SKILL.md`: reglas de traducción y comentarios del caso SOLID. Pasos:
+  - 2 por hoja con pypdf (misma geometría que el PDF del SOLID);
+  - hojas de miniaturas (`salida/revision/hoja-NN.png`) con PyMuPDF; `atril ver` renderiza
+    páginas sueltas en detalle;
+  - marca la parte como `construida` en `libro.json`.
+- [x] `.claude/skills/libro/SKILL.md`: reglas de traducción y comentarios del caso SOLID. Pasos:
   1. leer `contexto.md`;
   2. confirmar el plan con el usuario;
   3. traducir capítulo por capítulo;
@@ -153,9 +158,11 @@ dar las mismas 32 páginas. Eso confirma que las fuentes y la plantilla funciona
   8. actualizar `glosario.md`.
 
 **Verificación:**
-- recompilar el SOLID con `libro.css` y que se vea igual (regresión de la plantilla);
-- procesar de punta a punta un capítulo corto nuevo de la Parte IV y revisar que el estilo
-  coincida y que `glosario.md` se haya actualizado.
+- [x] recompilar el SOLID con `libro.css` y que se vea igual: 32 páginas, sin diferencias de
+  píxeles con el PDF hecho a mano (`tests/test_salida.py`);
+- [x] procesar de punta a punta un capítulo corto nuevo de la Parte IV y revisar que el estilo
+  coincida y que `glosario.md` se haya actualizado: el cap. 12 (EN 88–92) da 9 páginas y
+  `glosario.md` queda con 20 términos.
 
 ### Fase 3 · App visual
 - Miniaturas de página con PyMuPDF (con caché).

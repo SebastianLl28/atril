@@ -87,7 +87,7 @@ def _palabras(texto):
 
 
 def exportar(proyecto, parte, original=None, referencia=None, instrucciones="",
-             titulo_parte=None, salida=("carta", "2-por-hoja")):
+             titulo_parte=None, salida=("carta", "2-por-hoja"), idioma_destino="es"):
     """Genera <proyecto>/<parte>/contexto.md y figuras/. Devuelve la ruta de contexto.md.
 
     Basta con indicar uno de los dos rangos (tuplas 1-based, inclusivas): el otro sale del mapa.
@@ -160,6 +160,7 @@ def exportar(proyecto, parte, original=None, referencia=None, instrucciones="",
             "paginas": _rango(*referencia),
             "nota": "versión de apoyo; puede tener errores de traducción",
         }
+    cabecera["idioma_destino"] = idioma_destino
     cabecera["salida"] = list(salida)
     cabecera["estadisticas"] = {
         "paginas_original": original[1] - original[0] + 1,
@@ -182,6 +183,7 @@ def exportar(proyecto, parte, original=None, referencia=None, instrucciones="",
         "titulo": titulo_parte or parte,
         "original": _rango(*original),
         "referencia": _rango(*referencia) if referencia else None,
+        "idioma_destino": idioma_destino,
         "estado": "exportada",
         "fecha": date.today().isoformat(),
     })

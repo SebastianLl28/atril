@@ -1,10 +1,11 @@
-"""Línea de comandos: atril nuevo | proyectos | indice | mapa | exportar."""
+"""Línea de comandos: nuevo | proyectos | indice | mapa | exportar | iniciar | construir | ver."""
 
 import argparse
 import re
 import sys
 from pathlib import Path
 
+from . import construir as salida
 from . import paquete
 from .proyecto import RAIZ, Proyecto
 
@@ -73,9 +74,34 @@ def exportar(args):
     elif args.instrucciones:
         instrucciones = Path(args.instrucciones).read_text(encoding="utf-8")
     contexto = paquete.exportar(p, args.parte, args.original, args.referencia, instrucciones,
-                                args.titulo_parte)
+                                args.titulo_parte, idioma_destino=args.idioma_destino)
     print(f"Paquete listo: {contexto}")
     print(f"En Claude Code: /libro {contexto.parent}")
+
+
+def _paginas(texto):
+    paginas = []
+    for trozo in texto.split(","):
+        desde, hasta = _rango(trozo.strip())
+        paginas += range(desde, hasta + 1)
+    return paginas
+
+
+def iniciar(args):
+    html = salida.iniciar(args.carpeta)
+    print(f"HTML de trabajo: {html}")
+
+
+def construir(args):
+    r = salida.construir(args.carpeta)
+    print(f"PDF: {r['pdf']} ({r['paginas']} págs)")
+    print(f"2 por hoja: {r['pdf_2x1']}")
+    print("Miniaturas:", *r["miniaturas"], sep="\n  ")
+
+
+def ver(args):
+    for ruta in salida.ver(args.carpeta, args.paginas):
+        print(ruta)
 
 
 def main(argv=None):
@@ -114,7 +140,21 @@ def main(argv=None):
     s.add_argument("--referencia", type=_rango)
     s.add_argument("--instrucciones", help="archivo de texto, o - para leer de stdin")
     s.add_argument("--titulo-parte")
+    s.add_argument("--idioma-destino", default="es")
     s.set_defaults(fn=exportar)
+
+    s = sub.add_parser("iniciar", help="crear salida/ con la plantilla HTML de una parte")
+    s.add_argument("carpeta", help="carpeta de la parte (la que tiene contexto.md)")
+    s.set_defaults(fn=iniciar)
+
+    s = sub.add_parser("construir", help="HTML → PDF, 2 por hoja y miniaturas de revisión")
+    s.add_argument("carpeta", help="carpeta de la parte (la que tiene contexto.md)")
+    s.set_defaults(fn=construir)
+
+    s = sub.add_parser("ver", help="renderizar páginas del PDF construido para revisarlas")
+    s.add_argument("carpeta")
+    s.add_argument("paginas", type=_paginas, help="p. ej. 5 o 3,7-9")
+    s.set_defaults(fn=ver)
 
     args = ap.parse_args(argv)
     args.fn(args)

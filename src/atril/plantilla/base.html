@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="{{idioma_destino}}">
+<head>
+<meta charset="utf-8">
+<title>{{parte}} — {{libro}}</title>
+<link rel="stylesheet" href="libro.css">
+<!-- Las figuras originales están en ../figuras/; los SVG redibujados, aquí en salida/. -->
+<!-- Ajustes solo de esta parte (opcional):
+<style> .ilustracion img { height: 4.6cm; } </style> -->
+</head>
+<body>
+
+<!-- ===================================================== PORTADA -->
+<div class="portada">
+  <div class="kicker">{{libro}} · {{parte}}</div>
+  <h1>COMPLETAR: título de la parte</h1>
+  <div class="sub">COMPLETAR: subtítulo (temas o capítulos que cubre)</div>
+  <div class="meta">
+    <p><b>Fuente:</b> COMPLETAR: autor, <i>título original</i>, editorial, año. {{parte}} (págs. {{paginas_original}} del PDF original).</p>
+    <p><b>Esta versión:</b> {{descripcion_version}}</p>
+    <div class="com" style="margin-top:1.2em">
+      <span class="label">Comentario · cómo leer este documento</span>
+      Todo lo que aparece dentro de un recuadro gris como este es un <b>comentario añadido</b> para ayudar a entender el texto o los diagramas. <b>No forma parte del libro.</b> Todo lo demás (texto normal, citas, figuras y notas al pie) es traducción fiel del original.
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================== ÍNDICE -->
+<!-- Una entrada por capítulo; el número de página lo pone WeasyPrint con target-counter. -->
+<div class="indice">
+  <h2>Contenido</h2>
+  <ol>
+    <li><a href="#c1">1 · Título del capítulo</a></li>
+  </ol>
+  <!-- Opcional: glosario de términos que se dejan en el idioma original.
+  <div class="com">
+    <span class="label">Comentario · glosario de términos que se dejan en inglés</span>
+    <table>
+      <tr><th>Término</th><th>Significado</th></tr>
+      <tr><td><b>Término</b></td><td>Explicación.</td></tr>
+    </table>
+  </div> -->
+</div>
+
+<!-- ===================================================== CAPÍTULO 1 -->
+<!-- Patrón de capítulo. data-cap es el texto corto del encabezado de página. -->
+<section class="cap" id="c1">
+<p class="num">1</p>
+<h1 data-cap="1 · Título corto">Título del capítulo<span class="en">ORIGINAL CHAPTER TITLE</span></h1>
+<div class="ilustracion"><img src="../figuras/ilus-p001-1.jpeg" alt=""></div>
+
+<p>Párrafo traducido. Las notas al pie van en línea, donde está la llamada:<span class="fn">Texto de la nota.</span> y siguen el párrafo.</p>
+
+<blockquote class="def">Definición o enunciado central, en negrita y centrado.</blockquote>
+
+<h2>Sección</h2>
+
+<figure class="fig"><img src="fig1-1.svg" style="width:10.5cm"><figcaption><b>Figura 1.1</b> Pie de la figura traducido</figcaption></figure>
+
+<div class="com">
+  <span class="label">Comentario · cómo leer la figura 1.1</span>
+  Explicación breve.
+</div>
+
+<pre>codigo();  // los bloques de código no se traducen salvo los comentarios</pre>
+</section>
+
+</body>
+</html>
