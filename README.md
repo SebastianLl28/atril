@@ -5,6 +5,11 @@ la API de pago. El plan completo está en [PLAN.md](PLAN.md).
 
 ## Uso
 
+La forma más fácil es la app visual: `uv run atril app` abre el navegador con los dos PDFs lado
+a lado. Ahí se crea el proyecto, se eligen las páginas (o un capítulo desde el índice) y se
+exporta el paquete; al final muestra el comando `/libro …` listo para copiar. Lo mismo se puede
+hacer por línea de comandos:
+
 ```fish
 # 1. Crear el proyecto del libro: original + referencia opcional; calcula el mapa de páginas
 uv run atril nuevo arquitectura-limpia --titulo "Arquitectura Limpia" \
@@ -37,7 +42,7 @@ usa la variable `ATRIL_PROYECTOS`.
 ## Estructura
 
 - `src/atril/`: núcleo (`pdf`, `limpieza`, `mapa`, `paquete`, `proyecto`, `cli`) y salida
-  (`construir`, `svg`, `plantilla/`)
+  (`construir`, `svg`, `plantilla/`) y la app (`app`, `miniaturas`, `web/`)
 - `.claude/skills/libro/`: la skill `/libro`
 - `referencia/solid/`: el caso SOLID hecho a mano (HTML, CSS de impresión, SVG); es el modelo
   de estilo de la skill y la prueba de regresión de la plantilla

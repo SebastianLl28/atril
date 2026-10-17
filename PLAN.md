@@ -164,25 +164,27 @@ dar las mismas 32 páginas. Eso confirma que las fuentes y la plantilla funciona
   coincida y que `glosario.md` se haya actualizado: el cap. 12 (EN 88–92) da 9 páginas y
   `glosario.md` queda con 20 términos.
 
-### Fase 3 · App visual
-- Miniaturas de página con PyMuPDF (con caché).
-- Backend FastAPI dentro del mismo paquete. Lista los PDFs de `~/Documents/books` y sirve el
-  proyecto, miniaturas y vistas grandes con caché, índice, búsqueda, mapa y exportación.
-- Frontend:
-  - dos paneles lado a lado con miniaturas que cargan al hacer scroll;
-  - selección con clic y shift+clic, o por capítulo desde el índice;
-  - una búsqueda que marca las páginas donde aparece el término;
-  - al elegir páginas en un panel se marca el rango que corresponde en el otro, se puede
-    ajustar y el ajuste se guarda como ancla;
-  - caja de instrucciones con plantillas: traducir y revisar, solo mejorar la lectura…;
-  - contador de páginas y palabras, con aviso si la parte es demasiado grande (más de unas
-    35 páginas);
-  - botón Exportar, que muestra la ruta del paquete y el comando `/libro <ruta>` listo para
-    copiar.
-- Se abre con `uv run atril app`.
+### Fase 3 · App visual ✅
+- [x] Miniaturas de página con PyMuPDF (`src/atril/miniaturas.py`), con caché en
+      `~/.cache/atril/paginas/` (se cambia con `ATRIL_CACHE`) que se invalida si el PDF cambia.
+- [x] Backend FastAPI dentro del mismo paquete (`src/atril/app.py`). Lista los PDFs de
+      `~/Documents/books` (`ATRIL_LIBROS`) y sirve el proyecto, miniaturas y vistas grandes,
+      índice, búsqueda sin tildes, palabras por página, anclas (poner y quitar) y exportación.
+- [x] Frontend (`src/atril/web/`, HTML + JS sin build):
+  - dos paneles lado a lado con miniaturas que cargan al hacer scroll, tamaño ajustable;
+  - selección con clic y mayús+clic, o por capítulo desde el índice (llena el id y el título);
+  - una búsqueda que marca las páginas donde aparece el término y salta entre ellas;
+  - al elegir páginas en un panel se marca el rango que corresponde en el otro; se puede
+    ajustar con clics en ese panel y el ajuste se guarda como ancla (inicio y fin);
+  - caja de instrucciones con plantillas: traducir y revisar, solo mejorar la lectura, traducir
+    sin comentarios;
+  - contador de páginas y palabras, con aviso si la parte pasa de 35 páginas;
+  - botón Exportar, que muestra la ruta del paquete y el comando `/libro <ruta>` para copiar;
+  - doble clic abre la página en grande (← → para pasar); `?p=<slug>` abre un proyecto.
+- [x] Se abre con `uv run atril app`.
 
-**Verificación:** exportar la Parte III desde la app debe dar el mismo paquete que la línea
-de comandos (diff).
+**Verificación:** exportar la Parte III desde la app da el mismo paquete que la línea de
+comandos: `contexto.md` y las 20 figuras idénticos (`tests/test_app.py`).
 
 ### Fase 4 · Mejoras, cuando hagan falta
 - OCR automático para PDFs sin capa de texto (`uv tool install ocrmypdf`; tesseract con spa y

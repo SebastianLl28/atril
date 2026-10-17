@@ -75,11 +75,13 @@ class Proyecto:
         self.datos["mapa"]["anclas"][str(pagina_ref)] = pagina_orig
         self.recalcular_mapa()
 
+    def desanclar(self, pagina_ref):
+        self.datos["mapa"]["anclas"].pop(str(pagina_ref), None)
+        self.recalcular_mapa()
+
     def recalcular_mapa(self):
-        ref, orig = self.referencia, self.original
-        textos_ref = [ref.texto_plano(n) for n in range(1, len(ref) + 1)]
-        textos_orig = [orig.texto_plano(n) for n in range(1, len(orig) + 1)]
-        self.datos["mapa"]["ref_a_orig"] = mapa.calcular(textos_ref, textos_orig, self.anclas)
+        self.datos["mapa"]["ref_a_orig"] = mapa.calcular(self.referencia.textos,
+                                                         self.original.textos, self.anclas)
         self.guardar()
 
     def registrar_parte(self, parte):

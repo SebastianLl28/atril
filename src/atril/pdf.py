@@ -70,7 +70,12 @@ class Libro:
         return [(nivel, titulo, pagina) for nivel, titulo, pagina, *_ in self.doc.get_toc()]
 
     def texto_plano(self, numero):
-        return self.doc[numero - 1].get_text()
+        return self.textos[numero - 1]
+
+    @cached_property
+    def textos(self):
+        """Texto plano de todas las páginas; lo usan el mapa, la búsqueda y el contador."""
+        return [pagina.get_text() for pagina in self.doc]
 
     @cached_property
     def tamano_cuerpo(self):

@@ -21,11 +21,12 @@ uv sync                                        # instalar dependencias
 uv run pytest                                  # todos los tests
 uv run pytest tests/test_parte_iii.py::test_salen_las_20_figuras   # un test
 uv run atril --help                            # CLI: nuevo | proyectos | indice | mapa | exportar
-                                               #      iniciar | construir | ver (salida a PDF)
+                                               #      iniciar | construir | ver (salida a PDF) | app
 ```
 
 `tests/test_parte_iii.py` usa los PDFs reales de `~/Documents/books` (Arquitectura Limpia) y
-se salta si no están; `tests/test_salida.py` usa solo `referencia/solid/`. El nombre del PDF en español usa una «ñ» descompuesta (NFD): buscarlo con glob
+se salta si no están (igual que el test app = CLI de `tests/test_app.py`);
+`tests/test_salida.py` y el resto de `test_app.py` no necesitan los PDFs. El nombre del PDF en español usa una «ñ» descompuesta (NFD): buscarlo con glob
 (`Espa*l.pdf`), no con el nombre literal.
 
 ## Arquitectura
@@ -72,6 +73,11 @@ Flujo: `pdf.Libro` → `limpieza.limpiar` → `paquete.exportar` → `contexto.m
   `libro.css`.
 - **`svg.py`**: librería de diagramas (`Svg` con `cls`, `arrow`, `actor`, `component`…). Cada
   parte la usa desde su `salida/figs.py`.
+- **`app.py`** + **`web/`** + **`miniaturas.py`**: la app visual (`atril app`). `crear_app(raiz,
+  libros, cache)` arma la FastAPI. Guarda en memoria un `Proyecto` abierto por slug y protege
+  PyMuPDF con un candado, porque no es seguro entre hilos. El frontend es HTML + JS sin build.
+  `web/app.js` repite en JS `rango_original` y `rango_referencia` de `mapa.py`: si cambian,
+  hay que cambiar los dos. Los textos de página se cachean en `Libro.textos`.
 - **`.claude/skills/libro/SKILL.md`**: la skill `/libro`, con los pasos y las reglas de estilo
   sacadas del caso SOLID.
 

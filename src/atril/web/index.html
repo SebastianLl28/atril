@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atril</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<header>
+  <h1>Atril</h1>
+  <select id="proyecto" aria-label="Proyecto"></select>
+  <button id="btn-nuevo" type="button">Nuevo proyecto</button>
+  <span class="espacio"></span>
+  <label class="tamano">Tamaño <input id="tamano" type="range" min="80" max="240" step="10" value="120"></label>
+  <span id="estado" role="status"></span>
+</header>
+
+<main id="vacio" class="vacio">
+  <p>Elige un proyecto arriba o crea uno nuevo con los PDFs de <code>~/Documents/books</code>.</p>
+</main>
+
+<main id="trabajo" hidden>
+  <aside>
+    <section>
+      <h2>Índice</h2>
+      <div class="pestanas" id="pestanas-indice"></div>
+      <ol id="indice"></ol>
+    </section>
+
+    <section>
+      <h2>Buscar</h2>
+      <form id="form-buscar"><input id="buscar" type="search" placeholder="término, p. ej. Liskov" minlength="2"></form>
+      <div id="resultados"></div>
+    </section>
+
+    <section>
+      <h2>Selección</h2>
+      <div id="seleccion"><p class="nota">Clic en una página para empezar; mayús+clic extiende el rango.</p></div>
+      <div id="aviso" class="aviso" hidden></div>
+      <div class="botones">
+        <button id="btn-ancla" type="button" hidden>Guardar ajuste como ancla</button>
+        <button id="btn-limpiar" type="button">Limpiar</button>
+      </div>
+      <div id="anclas"></div>
+    </section>
+
+    <section>
+      <h2>Exportar</h2>
+      <form id="form-exportar">
+        <label>Id de la parte <input id="parte" required pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" placeholder="parte-03-solid"></label>
+        <label>Título <input id="titulo-parte" placeholder="III · Principios de diseño"></label>
+        <label>Idioma de destino <input id="idioma-destino" value="es" size="4"></label>
+        <label>Plantilla
+          <select id="plantilla">
+            <option value="">— elegir —</option>
+            <option value="traducir">Traducir y revisar</option>
+            <option value="mejorar">Solo mejorar la lectura</option>
+            <option value="sin-comentarios">Traducir sin comentarios</option>
+          </select>
+        </label>
+        <label>Instrucciones <textarea id="instrucciones" rows="5"></textarea></label>
+        <button type="submit" class="principal">Exportar</button>
+      </form>
+      <div id="exportado" class="exportado" hidden></div>
+      <div id="partes"></div>
+    </section>
+  </aside>
+
+  <section class="panel" data-lado="original">
+    <div class="cabecera"><b class="nombre"></b><input class="ir" type="number" min="1" placeholder="ir a p." aria-label="Ir a página"></div>
+    <div class="paginas"></div>
+  </section>
+  <section class="panel" data-lado="referencia">
+    <div class="cabecera"><b class="nombre"></b><input class="ir" type="number" min="1" placeholder="ir a p." aria-label="Ir a página"></div>
+    <div class="paginas"></div>
+  </section>
+</main>
+
+<dialog id="dlg-nuevo">
+  <form id="form-nuevo" method="dialog">
+    <h2>Nuevo proyecto</h2>
+    <label>Nombre corto <input id="n-slug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="arquitectura-limpia"></label>
+    <label>Título <input id="n-titulo" placeholder="Arquitectura Limpia"></label>
+    <label>PDF original (fuente fiel) <select id="n-original" required></select></label>
+    <label>Idioma del original <input id="n-idioma-original" value="en" size="4"></label>
+    <label>PDF de referencia (opcional) <select id="n-referencia"></select></label>
+    <label>Idioma de la referencia <input id="n-idioma-referencia" value="es" size="4"></label>
+    <p class="nota">Con referencia, se calcula el mapa de páginas: tarda unos segundos.</p>
+    <div class="botones">
+      <button type="button" id="n-cancelar">Cancelar</button>
+      <button type="submit" class="principal">Crear</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-vista" class="vista">
+  <div class="barra"><span id="vista-titulo"></span><span class="espacio"></span>
+    <button type="button" data-paso="-1">←</button><button type="button" data-paso="1">→</button>
+    <button type="button" id="vista-cerrar">Cerrar</button></div>
+  <img id="vista-img" alt="">
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

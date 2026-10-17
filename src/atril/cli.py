@@ -1,4 +1,4 @@
-"""Línea de comandos: nuevo | proyectos | indice | mapa | exportar | iniciar | construir | ver."""
+"""Línea de comandos: nuevo | proyectos | indice | mapa | exportar | iniciar | construir | ver | app."""
 
 import argparse
 import re
@@ -104,6 +104,12 @@ def ver(args):
         print(ruta)
 
 
+def app(args):
+    from .app import servir  # FastAPI solo se importa para la app
+
+    servir(args.puerto, abrir=not args.no_abrir)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="atril", description=__doc__)
     sub = ap.add_subparsers(required=True)
@@ -155,6 +161,11 @@ def main(argv=None):
     s.add_argument("carpeta")
     s.add_argument("paginas", type=_paginas, help="p. ej. 5 o 3,7-9")
     s.set_defaults(fn=ver)
+
+    s = sub.add_parser("app", help="abrir la app visual en el navegador")
+    s.add_argument("--puerto", type=int, default=8765)
+    s.add_argument("--no-abrir", action="store_true", help="no abrir el navegador")
+    s.set_defaults(fn=app)
 
     args = ap.parse_args(argv)
     args.fn(args)
