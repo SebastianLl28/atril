@@ -1,17 +1,31 @@
 # Atril
 
-Arma paquetes de contexto para traducir y mejorar libros por partes con Claude Code, sin usar
-la API de pago. El plan completo está en [PLAN.md](PLAN.md).
+Prepara documentos para leerlos y estudiarlos mejor con Claude Code, sin usar la API de pago:
+libros, informes, apuntes. Eliges páginas de un PDF con texto y decides qué hacer con ellas:
+- transcribir con una maquetación limpia y los diagramas redibujados;
+- traducir;
+- agregar comentarios de estudio o contexto a partir de otras fuentes (notas, enlaces, otros
+  PDFs);
+- cualquier combinación de lo anterior.
+
+Atril arma un paquete con el texto ya limpio y la skill `/libro` produce el PDF imprimible.
+No acepta PDFs que son solo imágenes (escaneos sin capa de texto). El plan completo está en
+[PLAN.md](PLAN.md).
 
 ## Uso
 
-La forma más fácil es la app visual: `uv run atril app` abre el navegador con los dos PDFs lado
-a lado. Ahí se crea el proyecto, se eligen las páginas (o un capítulo desde el índice) y se
-exporta el paquete; al final muestra el comando `/libro …` listo para copiar. Lo mismo se puede
-hacer por línea de comandos:
+La forma más fácil es la app visual: `uv run atril app` abre el navegador.
+1. Se crea el proyecto con el PDF del documento y, si se quiere, la misma obra en otro idioma
+   para verlas lado a lado.
+2. Se eligen las páginas: un capítulo desde el índice o, si el PDF no trae índice, con clic y
+   mayús+clic.
+3. En «Qué hacer con estas páginas» se elige la tarea y se suman fuentes adicionales.
+4. Al exportar, la app muestra el comando `/libro …` listo para copiar.
+
+Lo mismo se puede hacer por línea de comandos:
 
 ```fish
-# 1. Crear el proyecto del libro: original + referencia opcional; calcula el mapa de páginas
+# 1. Crear el proyecto: el documento y, opcional, otra versión en otro idioma (calcula el mapa)
 uv run atril nuevo arquitectura-limpia --titulo "Arquitectura Limpia" \
     --original "~/Documents/books/Arquitectura Limpia - ingles.pdf" \
     --referencia "~/Documents/books/Arquitectura Limpia - Español.pdf"
@@ -21,13 +35,15 @@ uv run atril indice arquitectura-limpia
 uv run atril mapa arquitectura-limpia --referencia 77-108      # → páginas del original
 uv run atril mapa arquitectura-limpia --ancla 77=62            # corregir a mano
 
-# 3. Exportar el paquete: basta con un rango, el otro sale del mapa
+# 3. Exportar la parte con su tarea (por defecto: mismo idioma, mejorar la lectura)
 uv run atril exportar arquitectura-limpia parte-03-solid --original 62-86 \
-    --instrucciones notas.txt --titulo-parte "III · Principios de diseño"
+    --traducir es --comentarios --contexto \
+    --notas apuntes.md --enlace https://es.wikipedia.org/wiki/SOLID --pdf "otro.pdf:3-8" \
+    --titulo-parte "III · Principios de diseño"
 ```
 
-Después, en Claude Code abierto en este repo: `/libro <carpeta de la parte>`. La skill traduce,
-redibuja los diagramas y comenta; para la salida usa estos comandos, que también se pueden
+Después, en Claude Code abierto en este repo: `/libro <carpeta de la parte>`. La skill hace lo
+que diga la tarea (transcribir o traducir, redibujar, comentar, dar contexto); para la salida usa estos comandos, que también se pueden
 correr a mano:
 
 ```fish
@@ -39,7 +55,6 @@ uv run atril ver       ~/Documents/books/proyectos/arquitectura-limpia/parte-03-
 Otros comandos:
 
 ```fish
-uv run atril ocr "~/Documents/books/math/2.geometria.pdf"   # copia con capa de texto
 uv run atril indice arquitectura-limpia --referencia        # índice detectado si el PDF no trae
 uv run atril imprimir <carpeta-de-la-parte> --2-por-hoja --simular   # quita --simular para imprimir
 ```
@@ -50,8 +65,7 @@ usa la variable `ATRIL_PROYECTOS`.
 ## Estructura
 
 - `src/atril/`: núcleo (`pdf`, `limpieza`, `mapa`, `paquete`, `proyecto`, `cli`) y salida
-  (`construir`, `svg`, `plantilla/`) la app (`app`, `miniaturas`, `web/`), `ocr` e
-  `imprimir`
+  (`construir`, `svg`, `plantilla/`) la app (`app`, `miniaturas`, `web/`) e `imprimir`
 - `.claude/skills/libro/`: la skill `/libro`
 - `referencia/solid/`: el caso SOLID hecho a mano (HTML, CSS de impresión, SVG); es el modelo
   de estilo de la skill y la prueba de regresión de la plantilla

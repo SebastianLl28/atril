@@ -6,13 +6,12 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const LADOS = ["original", "referencia"];
 const LIMITE_PAGINAS = 35;
 
-const PLANTILLAS = {
-  traducir: "Traducir al español y revisar contra el original, con el mismo estilo que el SOLID: " +
-    "diagramas redibujados y comentarios de estudio donde ayuden.",
-  mejorar: "No traducir: mantener el idioma original y solo mejorar la lectura (maquetación limpia, " +
-    "diagramas redibujados, notas al pie en su sitio). Comentarios breves solo donde algo no se entienda.",
-  "sin-comentarios": "Traducir al español y revisar contra el original. Sin recuadros de comentario: " +
-    "solo la traducción fiel y los diagramas redibujados.",
+// Combinaciones frecuentes de la tarea; después se puede ajustar cada casilla.
+const PRESETS = {
+  mejorar: { traducir: "", mejorar_lectura: true, comentarios: false, contexto: false, resumen: false },
+  traducir: { traducir: "es", mejorar_lectura: true, comentarios: false, contexto: false, resumen: false },
+  "traducir-enriquecer": { traducir: "es", mejorar_lectura: true, comentarios: true, contexto: true, resumen: true },
+  enriquecer: { traducir: "", mejorar_lectura: true, comentarios: true, contexto: true, resumen: true },
 };
 
 const estado = {
@@ -111,6 +110,9 @@ async function abrir(slugProyecto) {
   $("#trabajo").hidden = false;
   $("#trabajo").classList.toggle("solo", !p.referencia);
   $("#exportado").hidden = true;
+  ponerTarea(PRESETS.mejorar);
+  ponerFuentes({});
+  $("#instrucciones").value = "";
   $("#resultados").innerHTML = "";
   $("#buscar").value = "";
   for (const lado of LADOS) dibujarPanel(lado);
@@ -133,7 +135,7 @@ function dibujarPanel(lado) {
   const cont = $(".paginas", panel);
   cont.innerHTML = "";
   if (!info) return;
-  $(".nombre", panel).textContent = `${lado === "original" ? "Original" : "Referencia"} · ${info.idioma.toUpperCase()} · ${info.nombre}`;
+  $(".nombre", panel).textContent = `${lado === "original" ? "Documento" : "Otra versión"} · ${info.idioma.toUpperCase()} · ${info.nombre}`;
   $(".nombre", panel).title = info.pdf;
   $(".ir", panel).max = info.paginas;
   const frag = document.createDocumentFragment();
@@ -253,7 +255,7 @@ function dibujarSeleccion() {
   const n = r ? r[1] - r[0] + 1 : 0;
   const aviso = $("#aviso");
   aviso.hidden = n <= LIMITE_PAGINAS;
-  aviso.textContent = `La parte tiene ${n} páginas del original: más de ${LIMITE_PAGINAS} suele ser demasiado para una sola sesión de /libro. Conviene partirla.`;
+  aviso.textContent = `La parte tiene ${n} páginas del documento: más de ${LIMITE_PAGINAS} suele ser demasiado para una sola sesión de /libro. Conviene partirla.`;
   $("#btn-ancla").hidden = !estado.ajustado;
 }
 
@@ -304,11 +306,15 @@ function dibujarIndice() {
   if (!lados.includes(estado.indiceLado)) estado.indiceLado = lados[0] || "original";
   const info = estado.p[estado.indiceLado];
   const entradas = info ? info.indice : [];
-  $("#indice-nota").hidden = !(info && info.indice_detectado && entradas.length);
+  const nota = $("#indice-nota");
+  nota.hidden = !(info && info.indice_detectado);
+  nota.textContent = entradas.length
+    ? "Este PDF no trae índice: títulos detectados por tamaño de letra."
+    : "Este PDF no trae índice: marca las páginas con clic y mayús+clic.";
   $("#indice").innerHTML = entradas.length ? entradas.map(([nivel, titulo, pag], i) =>
     `<li class="n${nivel}" data-i="${i}" style="padding-left:${(nivel - 1) * 0.9 + 0.3}em" title="${esc(titulo)}">` +
     `<span>${esc(titulo)}</span><span class="pag">${pag}</span></li>`).join("")
-    : '<li class="nota">Este PDF no tiene índice.</li>';
+    : "";
 }
 
 function rangoEntrada(lado, i) {
@@ -347,6 +353,95 @@ function irSiguiente(lado) {
   irA(lado, h[siguienteHit[lado]]);
 }
 
+// ---------------------------------------------------------------- tarea y fuentes
+function leerTarea() {
+  const idioma = $("#idioma-salida").value;
+  return {
+    traducir: idioma === "otro" ? ($("#idioma-otro").value.trim() || null) : (idioma || null),
+    mejorar_lectura: $("#t-mejorar").checked,
+    comentarios: $("#t-comentarios").checked,
+    contexto: $("#t-contexto").checked,
+    resumen: $("#t-resumen").checked,
+  };
+}
+
+function ponerTarea(t) {
+  const idioma = t.traducir || "";
+  const conocido = ["", "es", "en"].includes(idioma);
+  $("#idioma-salida").value = conocido ? idioma : "otro";
+  $("#idioma-otro").value = conocido ? "" : idioma;
+  $("#idioma-otro").hidden = conocido;
+  $("#t-mejorar").checked = t.mejorar_lectura ?? true;
+  $("#t-comentarios").checked = !!t.comentarios;
+  $("#t-contexto").checked = !!t.contexto;
+  $("#t-resumen").checked = !!t.resumen;
+  marcarPreset();
+}
+
+function marcarPreset() {
+  const t = leerTarea();
+  for (const b of $$("#presets button")) {
+    const p = PRESETS[b.dataset.preset];
+    b.classList.toggle("activa", Object.keys(p).every((k) => (p[k] || null) === (t[k] || null)));
+  }
+}
+
+function resumenTarea(t) {
+  if (!t) return "";
+  const partes = [t.traducir ? `traducir → ${t.traducir}` : "mismo idioma"];
+  if (t.mejorar_lectura) partes.push("lectura");
+  if (t.comentarios) partes.push("comentarios");
+  if (t.contexto) partes.push("contexto");
+  if (t.resumen) partes.push("resumen");
+  return partes.join(" · ");
+}
+
+function filaPdf(f = {}) {
+  const div = document.createElement("div");
+  div.className = "fila-pdf";
+  const opciones = estado.pdfs.map((x) =>
+    `<option value="${esc(x.ruta)}" ${x.solo_imagenes ? "disabled" : ""}>${esc(x.nombre)}${x.solo_imagenes ? " (solo imágenes)" : ` (${x.paginas} p.)`}</option>`).join("");
+  div.innerHTML = `<select aria-label="PDF de apoyo">${opciones}</select>` +
+    `<input placeholder="p. ej. 3-8" aria-label="Páginas" pattern="\\d+(-\\d+)?"><button type="button" title="Quitar">×</button>`;
+  if (f.pdf) $("select", div).value = f.pdf;
+  else { const libre = estado.pdfs.find((x) => !x.solo_imagenes); if (libre) $("select", div).value = libre.ruta; }
+  if (f.paginas) $("input", div).value = f.paginas;
+  $("#f-pdfs").append(div);
+  contarFuentes();
+}
+
+function leerFuentes() {
+  const pdfs = $$("#f-pdfs .fila-pdf").map((d) => {
+    const m = $("input", d).value.trim().match(/^(\d+)(?:-(\d+))?$/);
+    return m ? { pdf: $("select", d).value, paginas: [+m[1], +(m[2] || m[1])] } : null;
+  });
+  if (pdfs.includes(null)) throw new Error("Escribe el rango de páginas de cada PDF de apoyo (p. ej. 3-8).");
+  return {
+    notas: $("#f-notas").value,
+    enlaces: $("#f-enlaces").value.split("\n").map((e) => e.trim()).filter(Boolean),
+    pdfs,
+  };
+}
+
+function ponerFuentes(f = {}) {
+  $("#f-notas").value = "";  // las notas no se guardan en libro.json, solo si había
+  $("#f-enlaces").value = (f.enlaces || []).join("\n");
+  $("#f-pdfs").innerHTML = "";
+  for (const x of f.pdfs || []) filaPdf({ pdf: x.pdf, paginas: x.paginas });
+  contarFuentes();
+}
+
+function contarFuentes() {
+  const n = (+!!$("#f-notas").value.trim()) +
+    $("#f-enlaces").value.split("\n").filter((e) => e.trim()).length + $$("#f-pdfs .fila-pdf").length;
+  $("#fuentes-cuenta").textContent = n ? `(${n})` : "";
+}
+
+async function cargarPdfs() {
+  if (!estado.pdfs.length) estado.pdfs = await api("/api/pdfs");
+  return estado.pdfs;
+}
+
 // ---------------------------------------------------------------- exportar
 function dibujarPartes() {
   const p = estado.p;
@@ -361,7 +456,7 @@ function dibujarPartes() {
     return `<li><b>${esc(x.titulo || x.id)}</b>` +
       `<div class="meta">${esc(x.id)} · p. ${x.original}${x.referencia ? ` ↔ ${x.referencia}` : ""}` +
       `${x.fecha ? ` · ${x.fecha}` : ""}${x.paginas_pdf ? ` · ${x.paginas_pdf} págs de PDF` : ""}</div>` +
-      `<span class="estado ${x.estado}">${x.estado}</span>` +
+      `<span class="estado ${x.estado}">${x.estado}</span> <span class="tarea-chip">${esc(resumenTarea(x.tarea || (x.idioma_destino ? { traducir: x.idioma_destino, mejorar_lectura: true } : null)))}</span>` +
       `<div class="botones"><button type="button" data-elegir="${i}" title="Volver a elegir estas páginas">Elegir</button>${enlaces}</div></li>`;
   }).join("") : '<li class="nota">Todavía no hay partes exportadas.</li>';
 }
@@ -404,6 +499,9 @@ function elegirParte(i) {
   }
   $("#parte").value = x.id;
   $("#titulo-parte").value = x.titulo || "";
+  if (x.tarea) ponerTarea(x.tarea);
+  else if (x.idioma_destino) ponerTarea({ traducir: x.idioma_destino, mejorar_lectura: true });
+  cargarPdfs().then(() => ponerFuentes(x.fuentes || {}));
   estado.parteEditada = true;
   actualizar();
 }
@@ -412,13 +510,16 @@ async function exportar(ev) {
   ev.preventDefault();
   const p = estado.p;
   if (!estado.sel.original && !estado.sel.referencia) { alert("Elige primero las páginas."); return; }
+  let fuentes;
+  try { fuentes = leerFuentes(); } catch (e) { alert(e.message); return; }
   const cuerpo = {
     parte: $("#parte").value.trim(),
     original: estado.sel.original,
     referencia: p.referencia ? estado.sel.referencia : null,
     instrucciones: $("#instrucciones").value,
     titulo_parte: $("#titulo-parte").value.trim() || null,
-    idioma_destino: $("#idioma-destino").value.trim() || "es",
+    tarea: leerTarea(),
+    fuentes,
   };
   if (p.partes.some((x) => x.id === cuerpo.parte) &&
       !confirm(`La parte «${cuerpo.parte}» ya existe. ¿Volver a exportarla? Se reemplaza contexto.md y figuras/; salida/ no se toca.`)) return;
@@ -445,43 +546,14 @@ function abrirVista(lado, n) {
 // ---------------------------------------------------------------- nuevo proyecto
 async function dialogoNuevo() {
   $("#dlg-nuevo").showModal();
-  await cargarPdfs();
-}
-
-async function cargarPdfs(elegir) {
   avisar("Revisando los PDFs…");
   estado.pdfs = await api("/api/pdfs");
   avisar("");
-  const opciones = estado.pdfs.map((f) =>
-    `<option value="${esc(f.ruta)}">${esc(f.nombre)}${f.sin_texto ? " ⚠ sin texto" : ""}</option>`).join("");
-  const antes = { o: $("#n-original").value, r: $("#n-referencia").value };
-  $("#n-original").innerHTML = opciones;
+  const opciones = estado.pdfs.map((f) => f.solo_imagenes
+    ? `<option value="${esc(f.ruta)}" disabled>${esc(f.nombre)} — solo imágenes, no se acepta</option>`
+    : `<option value="${esc(f.ruta)}">${esc(f.nombre)} (${f.paginas} p.)</option>`).join("");
+  $("#n-original").innerHTML = '<option value="">— elige un PDF —</option>' + opciones;
   $("#n-referencia").innerHTML = '<option value="">— ninguna —</option>' + opciones;
-  if (antes.o) $("#n-original").value = antes.o;
-  if (antes.r) $("#n-referencia").value = antes.r;
-  if (elegir) $(`#${elegir.campo}`).value = elegir.ruta;
-  revisarOcr();
-}
-
-function revisarOcr() {
-  const sinTexto = ["n-original", "n-referencia"]
-    .map((id) => ({ id, f: estado.pdfs.find((x) => x.ruta === $(`#${id}`).value) }))
-    .filter(({ f }) => f && f.sin_texto);
-  const aviso = $("#n-aviso-ocr");
-  aviso.hidden = !sinTexto.length;
-  if (!sinTexto.length) return;
-  const { id, f } = sinTexto[0];
-  aviso.dataset.campo = id;
-  aviso.dataset.ruta = f.ruta;
-  $("#n-aviso-texto").textContent = `«${f.nombre}» no tiene capa de texto (es un escaneo). ` +
-    "Sin OCR no se puede extraer el texto ni emparejar páginas. Se crea una copia «(OCR)» al lado del original; puede tardar varios minutos.";
-}
-
-async function pasarOcr() {
-  const aviso = $("#n-aviso-ocr");
-  const r = await ocupado("Pasando OCR… (puede tardar varios minutos)",
-    () => api("/api/ocr", { method: "POST", body: { pdf: aviso.dataset.ruta } }));
-  await cargarPdfs({ campo: aviso.dataset.campo, ruta: r.ruta });
 }
 
 async function crearProyecto(ev) {
@@ -505,11 +577,8 @@ $("#proyecto").addEventListener("change", (e) => abrir(e.target.value));
 $("#btn-nuevo").addEventListener("click", dialogoNuevo);
 $("#n-cancelar").addEventListener("click", () => $("#dlg-nuevo").close());
 $("#form-nuevo").addEventListener("submit", crearProyecto);
-$("#n-referencia").addEventListener("change", revisarOcr);
-$("#n-ocr").addEventListener("click", pasarOcr);
 $("#n-original").addEventListener("change", (e) => {
-  revisarOcr();
-  if (!$("#n-titulo").value) $("#n-titulo").value = e.target.selectedOptions[0].text.replace(/\.pdf$/i, "").split("/").pop();
+  if (!$("#n-titulo").value) $("#n-titulo").value = e.target.selectedOptions[0].text.replace(/ \(\d+ p\.\)$/, "").replace(/\.pdf$/i, "").split("/").pop();
   if (!$("#n-slug").value) $("#n-slug").value = slug($("#n-titulo").value);
 });
 
@@ -560,13 +629,23 @@ $("#anclas").addEventListener("click", (e) => {
   if (b) quitarAncla(b.dataset.ref);
 });
 
-$("#plantilla").addEventListener("change", (e) => {
-  const t = PLANTILLAS[e.target.value];
-  if (!t) return;
-  const caja = $("#instrucciones");
-  if (caja.value.trim() && !confirm("¿Reemplazar las instrucciones escritas?")) { e.target.value = ""; return; }
-  caja.value = t;
+$("#presets").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-preset]");
+  if (b) ponerTarea(PRESETS[b.dataset.preset]);
 });
+$("#idioma-salida").addEventListener("change", (e) => {
+  $("#idioma-otro").hidden = e.target.value !== "otro";
+  marcarPreset();
+});
+for (const id of ["#idioma-otro", "#t-mejorar", "#t-comentarios", "#t-contexto", "#t-resumen"]) {
+  $(id).addEventListener("change", marcarPreset);
+}
+$("#f-agregar-pdf").addEventListener("click", async () => { await cargarPdfs(); filaPdf(); $("#fuentes").open = true; });
+$("#f-pdfs").addEventListener("click", (e) => {
+  if (e.target.matches(".fila-pdf button")) { e.target.closest(".fila-pdf").remove(); contarFuentes(); }
+});
+$("#f-notas").addEventListener("input", contarFuentes);
+$("#f-enlaces").addEventListener("input", contarFuentes);
 for (const id of ["#parte", "#titulo-parte"]) {
   $(id).addEventListener("input", () => { estado.parteEditada = true; });
 }

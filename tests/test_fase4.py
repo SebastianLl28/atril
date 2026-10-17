@@ -1,4 +1,4 @@
-"""Pruebas de la Fase 4: índice detectado, OCR, impresión e historial de partes en la app.
+"""Pruebas de la Fase 4: índice detectado, PDFs sin texto, impresión e historial en la app.
 
 La impresión nunca llega a la impresora: o se simula o se usa un `lp` falso en el PATH.
 """
@@ -11,9 +11,9 @@ import pymupdf
 import pytest
 from fastapi.testclient import TestClient
 
-from atril import cli, imprimir, ocr
+from atril import cli, imprimir
 from atril.app import crear_app
-from atril.pdf import Libro
+from atril.pdf import Libro, solo_imagenes
 from atril.proyecto import Proyecto
 
 from test_parte_iii import EN
@@ -67,22 +67,17 @@ def _escaneado(ruta):
     doc.save(ruta)
 
 
-def test_detecta_pdf_sin_texto(tmp_path):
+def test_rechaza_pdfs_solo_imagenes(tmp_path):
     _escaneado(tmp_path / "escaneo.pdf")
     _libro_sin_indice(tmp_path / "texto.pdf")
-    assert ocr.necesita_ocr(tmp_path / "escaneo.pdf")
-    assert not ocr.necesita_ocr(tmp_path / "texto.pdf")
-
-
-@pytest.mark.skipif(not (shutil.which("ocrmypdf") or os.path.exists(
-    os.path.expanduser("~/.local/bin/ocrmypdf"))), reason="falta ocrmypdf")
-def test_ocr_agrega_capa_de_texto(tmp_path):
-    _escaneado(tmp_path / "escaneo.pdf")
-    destino = ocr.ocr(tmp_path / "escaneo.pdf")
-    assert destino.name == "escaneo (OCR).pdf"
-    texto = pymupdf.open(destino)[0].get_text().lower()
-    assert "arquitectura" in texto and "componentes" in texto
-    assert not ocr.necesita_ocr(destino)
+    assert solo_imagenes(tmp_path / "escaneo.pdf")
+    assert not solo_imagenes(tmp_path / "texto.pdf")
+    with pytest.raises(ValueError, match="solo imágenes"):
+        Proyecto.crear("x", "X", tmp_path / "escaneo.pdf", raiz=tmp_path / "proyectos")
+    with pytest.raises(ValueError, match="solo imágenes"):
+        Proyecto.crear("x", "X", tmp_path / "texto.pdf", referencia=tmp_path / "escaneo.pdf",
+                       raiz=tmp_path / "proyectos")
+    assert not (tmp_path / "proyectos" / "x").exists()
 
 
 @pytest.fixture
@@ -159,11 +154,12 @@ def test_app_historial_pdf_e_impresion(parte_construida, lp_falso, tmp_path):
     assert c.post(url, json={"paginas": "1;x"}).status_code == 422
 
 
-def test_app_marca_pdfs_sin_texto(tmp_path):
+def test_app_marca_y_rechaza_pdfs_solo_imagenes(tmp_path):
     _escaneado(tmp_path / "escaneo.pdf")
     _libro_sin_indice(tmp_path / "texto.pdf")
     c = TestClient(crear_app(raiz=tmp_path / "proyectos", libros=tmp_path,
                              cache=tmp_path / "cache"))
-    marcas = {f["nombre"]: f["sin_texto"] for f in c.get("/api/pdfs").json()}
+    marcas = {f["nombre"]: f["solo_imagenes"] for f in c.get("/api/pdfs").json()}
     assert marcas == {"escaneo.pdf": True, "texto.pdf": False}
-    assert c.post("/api/ocr", json={"pdf": "/etc/passwd"}).status_code == 422
+    r = c.post("/api/proyectos", json={"slug": "x", "original": str(tmp_path / "escaneo.pdf")})
+    assert r.status_code == 422 and "solo imágenes" in r.json()["detail"]

@@ -69,3 +69,6 @@ table.cfg th { font-family: "Noto Sans", sans-serif; background: #eee; }
 ::footnote-call { content: counter(footnote); font-size: 7pt; vertical-align: super; line-height: 0; }
 ::footnote-marker { content: counter(footnote) ". "; }
 @page { @footnote { border-top: 1px solid #999; padding-top: .4em; margin-top: .6em; } }
+
+/* Fuente de un recuadro de contexto */
+.com .fuente { display: block; margin-top: .35em; font-size: 7.8pt; color: #444; }

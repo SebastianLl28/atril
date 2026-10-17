@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{idioma_destino}}">
+<html lang="{{idioma_salida}}">
 <head>
 <meta charset="utf-8">
 <title>{{parte}} — {{libro}}</title>
@@ -20,7 +20,7 @@
     <p><b>Esta versión:</b> {{descripcion_version}}</p>
     <div class="com" style="margin-top:1.2em">
       <span class="label">Comentario · cómo leer este documento</span>
-      Todo lo que aparece dentro de un recuadro gris como este es un <b>comentario añadido</b> para ayudar a entender el texto o los diagramas. <b>No forma parte del libro.</b> Todo lo demás (texto normal, citas, figuras y notas al pie) es traducción fiel del original.
+      Todo lo que aparece dentro de un recuadro gris como este es un <b>comentario añadido</b> para ayudar a entender el texto o los diagramas. <b>No forma parte del libro.</b> Todo lo demás (texto normal, citas, figuras y notas al pie) es {{fidelidad}}.
     </div>
   </div>
 </div>
@@ -49,20 +49,20 @@
 <h1 data-cap="1 · Título corto">Título del capítulo<span class="en">ORIGINAL CHAPTER TITLE</span></h1>
 <div class="ilustracion"><img src="../figuras/ilus-p001-1.jpeg" alt=""></div>
 
-<p>Párrafo traducido. Las notas al pie van en línea, donde está la llamada:<span class="fn">Texto de la nota.</span> y siguen el párrafo.</p>
+<p>Párrafo del documento. Las notas al pie van en línea, donde está la llamada:<span class="fn">Texto de la nota.</span> y siguen el párrafo.</p>
 
 <blockquote class="def">Definición o enunciado central, en negrita y centrado.</blockquote>
 
 <h2>Sección</h2>
 
-<figure class="fig"><img src="fig1-1.svg" style="width:10.5cm"><figcaption><b>Figura 1.1</b> Pie de la figura traducido</figcaption></figure>
+<figure class="fig"><img src="fig1-1.svg" style="width:10.5cm"><figcaption><b>Figura 1.1</b> Pie de la figura</figcaption></figure>
 
 <div class="com">
   <span class="label">Comentario · cómo leer la figura 1.1</span>
   Explicación breve.
 </div>
 
-<pre>codigo();  // los bloques de código no se traducen salvo los comentarios</pre>
+<pre>codigo();  // los bloques de código se copian tal cual</pre>
 </section>
 
 </body>

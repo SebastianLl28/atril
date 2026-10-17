@@ -88,3 +88,17 @@ dialog label input:not([size]), dialog label select { display: block; width: 100
 dialog.vista { width: auto; max-width: 96vw; max-height: 96vh; padding: .5em; }
 dialog.vista .barra { display: flex; gap: .5em; align-items: center; margin-bottom: .4em; }
 dialog.vista img { display: block; max-height: calc(96vh - 4em); max-width: 100%; margin: 0 auto; }
+
+.presets { display: flex; flex-wrap: wrap; gap: .3em; margin-bottom: .4em; }
+.presets button { font-size: .85em; padding: .15em .55em; }
+.presets button.activa { background: var(--texto); color: #fff; border-color: var(--texto); }
+fieldset.checks { border: 0; padding: 0; margin: .4em 0; }
+fieldset.checks label { display: block; margin: .25em 0; }
+aside fieldset.checks label input { display: inline; width: auto; margin: 0 .4em 0 0; vertical-align: -1px; }
+fieldset.checks .nota { display: inline; font-size: .82em; }
+details { margin: .5em 0; }
+details summary { cursor: pointer; font-size: .92em; font-weight: 600; }
+.fila-pdf { display: grid; grid-template-columns: 1fr 5.5em auto; gap: .3em; margin: .3em 0; align-items: center; }
+.fila-pdf select, .fila-pdf input { min-width: 0; width: 100%; }
+.fila-pdf button { padding: 0 .5em; }
+.tarea-chip { display: inline-block; font-size: .8em; color: var(--suave); }

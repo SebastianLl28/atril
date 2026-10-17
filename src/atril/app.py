@@ -14,8 +14,9 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import imprimir, miniaturas, ocr, paquete
+from . import imprimir, miniaturas, paquete
 from .construir import Salida
+from .pdf import solo_imagenes
 from .proyecto import RAIZ, Proyecto
 
 LIBROS = Path(os.environ.get("ATRIL_LIBROS", "~/Documents/books")).expanduser()
@@ -45,16 +46,30 @@ class Ancla(BaseModel):
     original: int
 
 
-class Ocr(BaseModel):
-    pdf: str
-    idiomas: str = "spa+eng"
-
-
 class Impresion(BaseModel):
     tipo: str = "carta"  # carta | 2x1
     copias: int = 1
     paginas: str | None = None
     simular: bool = False
+
+
+class PdfFuente(BaseModel):
+    pdf: str
+    paginas: tuple[int, int]
+
+
+class Fuentes(BaseModel):
+    notas: str = ""
+    enlaces: list[str] = []
+    pdfs: list[PdfFuente] = []
+
+
+class Tarea(BaseModel):
+    traducir: str | None = None
+    mejorar_lectura: bool = True
+    comentarios: bool = False
+    contexto: bool = False
+    resumen: bool = False
 
 
 class Exportacion(BaseModel):
@@ -63,7 +78,8 @@ class Exportacion(BaseModel):
     referencia: tuple[int, int] | None = None
     instrucciones: str = ""
     titulo_parte: str | None = None
-    idioma_destino: str = "es"
+    tarea: Tarea = Tarea()
+    fuentes: Fuentes = Fuentes()
 
 
 def crear_app(raiz=None, libros=None, cache=None):
@@ -71,7 +87,7 @@ def crear_app(raiz=None, libros=None, cache=None):
     libros = Path(libros or LIBROS)
     app = FastAPI(title="Atril")
     abiertos = {}  # slug → Proyecto, con sus PDFs y textos ya cargados
-    sin_texto = {}  # (ruta, mtime) → bool, para no volver a medir cada PDF
+    sin_texto = {}  # (ruta, mtime) → ¿solo imágenes?, para no volver a medir cada PDF
     candado = threading.RLock()  # PyMuPDF no es seguro entre hilos
 
     def proyecto(slug):
@@ -126,11 +142,18 @@ def crear_app(raiz=None, libros=None, cache=None):
                 "referencia": resumen_lado(p, "referencia"),
                 "mapa": p.mapa, "anclas": p.anclas, "partes": partes(p)}
 
+    def paginas_pdf(ruta):
+        try:
+            with candado:
+                return len(miniaturas.pymupdf.open(ruta))
+        except Exception:
+            return 0
+
     def falta_texto(ruta):
         clave = (str(ruta), ruta.stat().st_mtime_ns)
         if clave not in sin_texto:
             try:
-                sin_texto[clave] = ocr.necesita_ocr(ruta)
+                sin_texto[clave] = solo_imagenes(ruta)
             except Exception:  # PDF dañado o cifrado: que lo diga al abrirlo
                 sin_texto[clave] = False
         return sin_texto[clave]
@@ -141,20 +164,8 @@ def crear_app(raiz=None, libros=None, cache=None):
         encontrados = [f for f in libros.rglob("*.pdf") if raiz not in f.parents]
         return [{"ruta": str(f),
                  "nombre": unicodedata.normalize("NFC", str(f.relative_to(libros))),
-                 "sin_texto": falta_texto(f)}
+                 "paginas": paginas_pdf(f), "solo_imagenes": falta_texto(f)}
                 for f in sorted(encontrados, key=lambda f: str(f).lower())]
-
-    @app.post("/api/ocr")
-    def pasar_ocr(datos: Ocr):
-        """Copia con capa de texto, «<nombre> (OCR).pdf». Tarda: va fuera del candado."""
-        ruta = Path(datos.pdf)
-        if not ruta.is_file() or libros not in ruta.resolve().parents:
-            raise HTTPException(422, f"El PDF tiene que estar en {libros}")
-        try:
-            destino = ocr.ocr(ruta, datos.idiomas)
-        except RuntimeError as e:
-            raise HTTPException(500, str(e))
-        return {"ruta": str(destino)}
 
     @app.get("/api/impresoras")
     def ver_impresoras():
@@ -181,9 +192,12 @@ def crear_app(raiz=None, libros=None, cache=None):
             if pdf and not Path(pdf).is_file():
                 raise HTTPException(422, f"No existe el PDF {pdf}")
         with candado:
-            p = Proyecto.crear(datos.slug, datos.titulo or Path(datos.original).stem,
-                               datos.original, datos.idioma_original, datos.referencia,
-                               datos.idioma_referencia, raiz=raiz)
+            try:
+                p = Proyecto.crear(datos.slug, datos.titulo or Path(datos.original).stem,
+                                   datos.original, datos.idioma_original, datos.referencia,
+                                   datos.idioma_referencia, raiz=raiz)
+            except ValueError as e:  # PDF solo imágenes
+                raise HTTPException(422, str(e))
         abiertos[p.slug] = p
         return detalle(p)
 
@@ -245,11 +259,15 @@ def crear_app(raiz=None, libros=None, cache=None):
             raise HTTPException(422, "El id de la parte solo admite letras, números, . _ y -")
         if datos.original is None and datos.referencia is None:
             raise HTTPException(422, "Elige páginas en al menos uno de los dos PDFs")
+        for f in datos.fuentes.pdfs:
+            if libros not in Path(f.pdf).expanduser().resolve().parents:
+                raise HTTPException(422, f"Los PDFs de apoyo tienen que estar en {libros}")
         with candado:
             try:
                 contexto = paquete.exportar(p, datos.parte, datos.original, datos.referencia,
                                             datos.instrucciones, datos.titulo_parte,
-                                            idioma_destino=datos.idioma_destino)
+                                            tarea=datos.tarea.model_dump(),
+                                            fuentes=datos.fuentes.model_dump())
             except ValueError as e:
                 raise HTTPException(422, str(e))
         texto = contexto.read_text(encoding="utf-8")

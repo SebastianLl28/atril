@@ -60,6 +60,9 @@ def test_miniaturas(solid_pdf, tmp_path):
 
 
 def test_iniciar_y_construir_una_parte(tmp_path):
+    doc = pymupdf.open()
+    doc.new_page().insert_text((72, 100), "Texto de prueba suficiente para tener capa de texto.")
+    doc.save(tmp_path / "demo.pdf")
     p = Proyecto.crear("demo", "Libro Demo", tmp_path / "demo.pdf", raiz=tmp_path)
     carpeta = p.dir / "parte-01"
     carpeta.mkdir()

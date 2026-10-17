@@ -4,11 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Qué es
 
-Atril arma paquetes de contexto para traducir y mejorar libros por partes. Se elige un rango de
-páginas de un PDF **original** y, si se quiere, de una **referencia** (por ejemplo, una mala
-traducción automática). Atril exporta un `contexto.md` con el texto ya limpio y fusionado, más
-sus figuras. Después Claude Code procesa ese paquete con la skill `/libro` para producir el PDF
-final. `PLAN.md` tiene las fases y su estado: leerlo antes de empezar trabajo nuevo.
+Atril prepara documentos (libros, informes, apuntes) para leerlos y estudiarlos mejor, por
+partes. Se elige un rango de páginas de un PDF con texto (el **documento**, `original` en el
+código) y, si se quiere, de **otra versión** en otro idioma (`referencia` en el código y en
+`libro.json`). En cada parte se decide la **tarea**:
+- traducir o mantener el idioma;
+- mejorar la lectura;
+- comentarios, contexto, resumen.
+
+Se pueden sumar **fuentes adicionales**: notas, enlaces y páginas de otros PDFs. Atril exporta
+un `contexto.md` con el texto ya limpio y fusionado, más sus figuras. **No traducir no es un caso
+raro**: el idioma de salida por defecto es el del documento. No se aceptan PDFs que son solo
+imágenes (`pdf.solo_imagenes`); no hay OCR.
+
+Después Claude Code procesa ese paquete con la skill `/libro` para producir el PDF final.
+`PLAN.md` tiene las fases y su estado: leerlo antes de empezar trabajo nuevo.
 
 **Restricción de diseño:** nada puede llamar a la API de Anthropic. La parte con IA ocurre
 dentro de Claude Code (skill `/libro`, con la suscripción del usuario). Todo lo mecánico va en
@@ -22,7 +32,7 @@ uv run pytest                                  # todos los tests
 uv run pytest tests/test_parte_iii.py::test_salen_las_20_figuras   # un test
 uv run atril --help                            # CLI: nuevo | proyectos | indice | mapa | exportar
                                                #      iniciar | construir | ver (salida a PDF) | app
-                                               #      ocr | imprimir (--simular: no imprime)
+                                               #      imprimir (--simular: no imprime)
 ```
 
 `tests/test_parte_iii.py` usa los PDFs reales de `~/Documents/books` (Arquitectura Limpia) y
@@ -61,10 +71,16 @@ Flujo: `pdf.Libro` → `limpieza.limpiar` → `paquete.exportar` → `contexto.m
   - una carpeta por parte.
 - **`paquete.py`**: con un solo rango basta; el otro se deduce del mapa. Escribe:
   - `<parte>/contexto.md`: cabecera YAML con las rutas absolutas a los PDFs originales como
-    respaldo, instrucciones, glosario, índice de la parte y un `## Bloque` por página del
-    original con sus páginas de referencia agrupadas;
+    respaldo, `tarea` e `idioma_salida`. Después, las secciones `# Tarea` (en palabras),
+    `# Instrucciones`, `# Glosario`, `# Índice de la parte`, `# Fuentes adicionales` (notas,
+    enlaces y el texto limpio de otros PDFs) y `# Contenido`, con un `## Bloque` por página
+    del documento y sus páginas de la otra versión agrupadas;
   - `<parte>/figuras/`: las imágenes en su formato original, llamadas `fig-7.1` si tienen pie
-    de figura o `ilus-pNNN-k` si no.
+    de figura o `ilus-pNNN-k` si no. Las de la otra versión llevan el prefijo `ref-` y las de
+    los PDFs de apoyo, `fuenteN-`.
+
+  `paquete.TAREA` define los campos de la tarea; la app (`app.Tarea`), la CLI y la portada
+  (`construir._textos_portada`) la siguen.
   
   La skill `/libro` consume este formato: si se cambia, hay que actualizar ambos.
 - **`construir.py`** + **`plantilla/`** (`libro.css`, `base.html`): todo en `<parte>/salida/`.
@@ -79,8 +95,7 @@ Flujo: `pdf.Libro` → `limpieza.limpiar` → `paquete.exportar` → `contexto.m
   PyMuPDF con un candado, porque no es seguro entre hilos. El frontend es HTML + JS sin build.
   `web/app.js` repite en JS `rango_original` y `rango_referencia` de `mapa.py`: si cambian,
   hay que cambiar los dos. Los textos de página se cachean en `Libro.textos`.
-- **`ocr.py`**: `necesita_ocr` mira una muestra de páginas y `ocr` llama a ocrmypdf
-  (`uv tool install ocrmypdf`). **`imprimir.py`**: `lp` a la impresora predeterminada (Epson
+- **`imprimir.py`**: `lp` a la impresora predeterminada (Epson
   L3250) o a `ATRIL_IMPRESORA`. **Nunca imprimir de verdad en pruebas**: usar `--simular` o el
   `lp` falso de `tests/test_fase4.py`.
 - **Índice detectado** (`Libro.indice_detectado`): si el PDF no trae TOC, salen títulos por

@@ -18,7 +18,12 @@
 </header>
 
 <main id="vacio" class="vacio">
-  <p>Elige un proyecto arriba o crea uno nuevo con los PDFs de <code>~/Documents/books</code>.</p>
+  <div>
+    <p>Elige un proyecto arriba o crea uno nuevo con un PDF de <code>~/Documents/books</code>:
+      un libro, un informe, unos apuntes…</p>
+    <p class="nota">Después eliges páginas y decides qué hacer con ellas: transcribir y mejorar la lectura,
+      traducir, agregar comentarios o contexto con otras fuentes.</p>
+  </div>
 </main>
 
 <main id="trabajo" hidden>
@@ -26,7 +31,7 @@
     <section>
       <h2>Índice</h2>
       <div class="pestanas" id="pestanas-indice"></div>
-      <p id="indice-nota" class="nota" hidden>Este PDF no trae índice: títulos detectados por tamaño de letra.</p>
+      <p id="indice-nota" class="nota" hidden></p>
       <ol id="indice"></ol>
     </section>
 
@@ -48,20 +53,42 @@
     </section>
 
     <section>
-      <h2>Exportar</h2>
+      <h2>Qué hacer con estas páginas</h2>
       <form id="form-exportar">
-        <label>Id de la parte <input id="parte" required pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" placeholder="parte-03-solid"></label>
-        <label>Título <input id="titulo-parte" placeholder="III · Principios de diseño"></label>
-        <label>Idioma de destino <input id="idioma-destino" value="es" size="4"></label>
-        <label>Plantilla
-          <select id="plantilla">
-            <option value="">— elegir —</option>
-            <option value="traducir">Traducir y revisar</option>
-            <option value="mejorar">Solo mejorar la lectura</option>
-            <option value="sin-comentarios">Traducir sin comentarios</option>
+        <div class="presets" id="presets">
+          <button type="button" data-preset="mejorar">Transcribir y mejorar</button>
+          <button type="button" data-preset="traducir">Traducir</button>
+          <button type="button" data-preset="traducir-enriquecer">Traducir y enriquecer</button>
+          <button type="button" data-preset="enriquecer">Enriquecer</button>
+        </div>
+        <label>Idioma del resultado
+          <select id="idioma-salida">
+            <option value="">El mismo del documento (no traducir)</option>
+            <option value="es">Traducir al español</option>
+            <option value="en">Traducir al inglés</option>
+            <option value="otro">Traducir a otro idioma…</option>
           </select>
         </label>
-        <label>Instrucciones <textarea id="instrucciones" rows="5"></textarea></label>
+        <input id="idioma-otro" placeholder="código, p. ej. pt" size="6" hidden>
+        <fieldset class="checks">
+          <label><input type="checkbox" id="t-mejorar" checked> Mejorar la lectura <span class="nota">maquetación, diagramas redibujados</span></label>
+          <label><input type="checkbox" id="t-comentarios"> Comentarios de estudio <span class="nota">explican lo difícil</span></label>
+          <label><input type="checkbox" id="t-contexto"> Contexto <span class="nota">antecedentes, con las fuentes de abajo</span></label>
+          <label><input type="checkbox" id="t-resumen"> Resumen final</label>
+        </fieldset>
+
+        <details id="fuentes">
+          <summary>Fuentes adicionales <span id="fuentes-cuenta" class="nota"></span></summary>
+          <label>Notas o texto pegado <textarea id="f-notas" rows="4" placeholder="apuntes, extractos, contexto que quieras sumar"></textarea></label>
+          <label>Enlaces <textarea id="f-enlaces" rows="2" placeholder="una URL por línea"></textarea></label>
+          <div class="nota">Páginas de otros PDFs</div>
+          <div id="f-pdfs"></div>
+          <button type="button" id="f-agregar-pdf">+ PDF de apoyo</button>
+        </details>
+
+        <label>Instrucciones <textarea id="instrucciones" rows="3" placeholder="lo que quieras pedir además (opcional)"></textarea></label>
+        <label>Id de la parte <input id="parte" required pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" placeholder="cap-07-srp"></label>
+        <label>Título <input id="titulo-parte" placeholder="7 · SRP"></label>
         <button type="submit" class="principal">Exportar</button>
       </form>
       <div id="exportado" class="exportado" hidden></div>
@@ -86,17 +113,21 @@
 <dialog id="dlg-nuevo">
   <form id="form-nuevo" method="dialog">
     <h2>Nuevo proyecto</h2>
-    <label>Nombre corto <input id="n-slug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="arquitectura-limpia"></label>
+    <label>Documento (PDF con texto) <select id="n-original" required></select></label>
+    <p class="nota">Libro, informe, apuntes… Los PDFs que son solo imágenes (escaneos sin texto) no se aceptan.</p>
+    <label>Idioma del documento
+      <input id="n-idioma-original" value="en" size="6" list="idiomas">
+    </label>
     <label>Título <input id="n-titulo" placeholder="Arquitectura Limpia"></label>
-    <label>PDF original (fuente fiel) <select id="n-original" required></select></label>
-    <label>Idioma del original <input id="n-idioma-original" value="en" size="4"></label>
-    <label>PDF de referencia (opcional) <select id="n-referencia"></select></label>
-    <label>Idioma de la referencia <input id="n-idioma-referencia" value="es" size="4"></label>
-    <div id="n-aviso-ocr" class="aviso" hidden>
-      <span id="n-aviso-texto"></span>
-      <div class="botones"><button type="button" id="n-ocr">Pasar OCR ahora</button></div>
-    </div>
-    <p class="nota">Con referencia, se calcula el mapa de páginas: tarda unos segundos.</p>
+    <label>Nombre corto <input id="n-slug" required pattern="[a-z0-9][a-z0-9\-]*" placeholder="arquitectura-limpia"></label>
+    <details>
+      <summary>Versión en otro idioma (opcional)</summary>
+      <p class="nota">Si tienes el mismo documento en otro idioma, Atril empareja sus páginas para verlas lado a lado
+        y usarlas de apoyo. Tarda unos segundos en calcularse.</p>
+      <label>PDF <select id="n-referencia"></select></label>
+      <label>Idioma <input id="n-idioma-referencia" value="es" size="6" list="idiomas"></label>
+    </details>
+    <datalist id="idiomas"><option value="es"><option value="en"><option value="pt"><option value="fr"><option value="de"><option value="it"></datalist>
     <div class="botones">
       <button type="button" id="n-cancelar">Cancelar</button>
       <button type="submit" class="principal">Crear</button>

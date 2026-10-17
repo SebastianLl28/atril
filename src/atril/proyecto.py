@@ -6,7 +6,7 @@ from functools import cached_property
 from pathlib import Path
 
 from . import mapa
-from .pdf import Libro
+from .pdf import Libro, solo_imagenes
 
 RAIZ = Path(os.environ.get("ATRIL_PROYECTOS", "~/Documents/books/proyectos")).expanduser()
 
@@ -23,6 +23,10 @@ class Proyecto:
     @classmethod
     def crear(cls, slug, titulo, original, idioma_original="en",
               referencia=None, idioma_referencia="es", raiz=None):
+        for pdf in filter(None, (original, referencia)):
+            if solo_imagenes(pdf):
+                raise ValueError(f"{Path(pdf).name} es solo imágenes (sin capa de texto): "
+                                 "Atril solo acepta PDFs con texto")
         directorio = (raiz or RAIZ) / slug
         directorio.mkdir(parents=True, exist_ok=True)
         datos = {

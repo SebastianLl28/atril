@@ -1,4 +1,4 @@
-"""Línea de comandos de Atril: nuevo, mapa, exportar, construir, app, ocr, imprimir… (ver --help)."""
+"""Línea de comandos de Atril: nuevo, mapa, exportar, construir, app, imprimir… (ver --help)."""
 
 import argparse
 import re
@@ -28,15 +28,12 @@ def _ancla(texto):
 
 
 def nuevo(args):
-    from .ocr import necesita_ocr
-
-    for pdf in filter(None, (args.original, args.referencia)):
-        if necesita_ocr(pdf):
-            sys.exit(f"{pdf} no tiene capa de texto. Pásale OCR primero:\n"
-                     f"  uv run atril ocr \"{pdf}\"\ny usa la copia «(OCR)» que genera.")
     titulo = args.titulo or Path(args.original).stem
-    p = Proyecto.crear(args.slug, titulo, args.original, args.idioma_original,
-                       args.referencia, args.idioma_referencia)
+    try:
+        p = Proyecto.crear(args.slug, titulo, args.original, args.idioma_original,
+                           args.referencia, args.idioma_referencia)
+    except ValueError as e:
+        sys.exit(str(e))
     print(f"Proyecto creado: {p.archivo}")
     print(f"Original: {len(p.original)} págs · índice con {len(p.original.indice())} entradas")
     if p.referencia:
@@ -77,15 +74,30 @@ def mapa(args):
         print("Referencia:", "-".join(map(str, r)) if r else "(sin páginas)")
 
 
+def _pdf_extra(texto):
+    ruta, _, rango = texto.rpartition(":")
+    if not ruta:
+        raise argparse.ArgumentTypeError(f"usa RUTA:RANGO, p. ej. apuntes.pdf:3-8 ({texto!r})")
+    return {"pdf": ruta, "paginas": _rango(rango)}
+
+
+def _leer(ruta):
+    if ruta == "-":
+        return sys.stdin.read()
+    return Path(ruta).read_text(encoding="utf-8") if ruta else ""
+
+
 def exportar(args):
     p = Proyecto(args.slug)
-    instrucciones = ""
-    if args.instrucciones == "-":
-        instrucciones = sys.stdin.read()
-    elif args.instrucciones:
-        instrucciones = Path(args.instrucciones).read_text(encoding="utf-8")
-    contexto = paquete.exportar(p, args.parte, args.original, args.referencia, instrucciones,
-                                args.titulo_parte, idioma_destino=args.idioma_destino)
+    tarea = {"traducir": args.traducir, "mejorar_lectura": not args.sin_mejorar,
+             "comentarios": args.comentarios, "contexto": args.contexto, "resumen": args.resumen}
+    fuentes = {"notas": _leer(args.notas), "enlaces": args.enlace or [], "pdfs": args.pdf or []}
+    try:
+        contexto = paquete.exportar(p, args.parte, args.original, args.referencia,
+                                    _leer(args.instrucciones), args.titulo_parte,
+                                    tarea=tarea, fuentes=fuentes)
+    except ValueError as e:
+        sys.exit(str(e))
     print(f"Paquete listo: {contexto}")
     print(f"En Claude Code: /libro {contexto.parent}")
 
@@ -115,14 +127,6 @@ def ver(args):
         print(ruta)
 
 
-def ocr(args):
-    from . import ocr as modulo
-
-    print(f"Pasando OCR ({args.idiomas})… puede tardar varios minutos")
-    destino = modulo.ocr(args.pdf, args.idiomas, args.destino, args.forzar)
-    print(f"Listo: {destino}")
-
-
 def imprimir(args):
     from .imprimir import imprimir as mandar
 
@@ -145,12 +149,14 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="atril", description=__doc__)
     sub = ap.add_subparsers(required=True)
 
-    s = sub.add_parser("nuevo", help="crear el proyecto de un libro")
+    s = sub.add_parser("nuevo", help="crear el proyecto de un documento (libro, informe…)")
     s.add_argument("slug", help="nombre corto, p. ej. arquitectura-limpia")
-    s.add_argument("--original", required=True, help="PDF original (fuente fiel)")
-    s.add_argument("--referencia", help="PDF de apoyo, p. ej. una traducción (opcional)")
+    s.add_argument("--original", "--documento", dest="original", required=True,
+                   help="PDF del documento (con texto; no se aceptan escaneos sin texto)")
+    s.add_argument("--referencia", "--otra-version", dest="referencia",
+                   help="el mismo documento en otro idioma, para compararlo (opcional)")
     s.add_argument("--titulo")
-    s.add_argument("--idioma-original", default="en")
+    s.add_argument("--idioma-original", "--idioma", dest="idioma_original", default="en")
     s.add_argument("--idioma-referencia", default="es")
     s.set_defaults(fn=nuevo)
 
@@ -171,14 +177,25 @@ def main(argv=None):
     s.add_argument("--original", type=_rango, help="rango del original a traducir")
     s.set_defaults(fn=mapa)
 
-    s = sub.add_parser("exportar", help="generar el paquete de una parte")
+    s = sub.add_parser("exportar", help="generar el paquete de una parte y decir qué hacer")
     s.add_argument("slug")
     s.add_argument("parte", help="id de la parte, p. ej. parte-03-solid")
-    s.add_argument("--original", type=_rango)
-    s.add_argument("--referencia", type=_rango)
-    s.add_argument("--instrucciones", help="archivo de texto, o - para leer de stdin")
+    s.add_argument("--original", type=_rango, help="páginas del documento")
+    s.add_argument("--referencia", type=_rango, help="páginas de la otra versión")
     s.add_argument("--titulo-parte")
-    s.add_argument("--idioma-destino", default="es")
+    g = s.add_argument_group("tarea (por defecto: mantener el idioma y mejorar la lectura)")
+    g.add_argument("--traducir", metavar="IDIOMA", help="traducir a este idioma, p. ej. es")
+    g.add_argument("--comentarios", action="store_true", help="recuadros de estudio")
+    g.add_argument("--contexto", action="store_true", help="recuadros de contexto y antecedentes")
+    g.add_argument("--resumen", action="store_true", help="resumen final de repaso")
+    g.add_argument("--sin-mejorar", action="store_true",
+                   help="no redibujar ni rehacer la maquetación: solo el texto")
+    g = s.add_argument_group("fuentes adicionales")
+    g.add_argument("--instrucciones", help="archivo de texto, o - para leer de stdin")
+    g.add_argument("--notas", help="archivo con notas o contexto pegado")
+    g.add_argument("--enlace", action="append", help="URL de apoyo; se puede repetir")
+    g.add_argument("--pdf", type=_pdf_extra, action="append", metavar="RUTA:RANGO",
+                   help="páginas de otro PDF como apoyo, p. ej. apuntes.pdf:3-8; se repite")
     s.set_defaults(fn=exportar)
 
     s = sub.add_parser("iniciar", help="crear salida/ con la plantilla HTML de una parte")
@@ -193,13 +210,6 @@ def main(argv=None):
     s.add_argument("carpeta")
     s.add_argument("paginas", type=_paginas, help="p. ej. 5 o 3,7-9")
     s.set_defaults(fn=ver)
-
-    s = sub.add_parser("ocr", help="crear una copia del PDF con capa de texto (ocrmypdf)")
-    s.add_argument("pdf")
-    s.add_argument("--idiomas", default="spa+eng", help="idiomas de tesseract, p. ej. spa+eng")
-    s.add_argument("--destino", help="por defecto, «<nombre> (OCR).pdf» al lado del original")
-    s.add_argument("--forzar", action="store_true", help="rehacer el OCR aunque haya texto")
-    s.set_defaults(fn=ocr)
 
     s = sub.add_parser("imprimir", help="mandar el PDF de una parte a la impresora (lp)")
     s.add_argument("carpeta", help="carpeta de la parte")

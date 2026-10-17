@@ -47,6 +47,35 @@ def _copiar_css(salida):
     shutil.copyfile(PLANTILLA / "libro.css", salida.dir / "libro.css")
 
 
+def _textos_portada(proyecto, parte):
+    """Idioma y frases de la portada según la tarea de la parte (ver paquete.TAREA)."""
+    tarea = parte.get("tarea") or {}
+    idioma = proyecto.datos["original"]["idioma"]
+    destino = tarea.get("traducir") or parte.get("idioma_destino")  # idioma_destino: partes viejas
+    traduce = bool(destino) and destino != idioma
+    if traduce:
+        version = (f"traducción revisada directamente del documento original ({idioma}), "
+                   "para estudio personal.")
+        fidelidad = "traducción fiel del original"
+    else:
+        version = ("transcripción fiel del documento original, con una maquetación pensada "
+                   "para leer y estudiar.")
+        fidelidad = "transcripción fiel del original"
+    ref = proyecto.datos.get("referencia")
+    if traduce and ref and parte.get("referencia"):
+        version += (f" Sustituye a la otra versión (págs. {parte['referencia']} del PDF en "
+                    f"{ref['idioma']}). COMPLETAR: errores típicos que corrige.")
+    extras = []
+    if tarea.get("mejorar_lectura", True):
+        extras.append("los diagramas se han redibujado en vectores para que se impriman nítidos")
+    if tarea.get("comentarios") or tarea.get("contexto"):
+        extras.append("se han añadido recuadros de comentario y contexto")
+    if extras:
+        version += " " + "; ".join(extras).capitalize() + "."
+    return {"idioma_salida": destino if traduce else idioma, "descripcion_version": version,
+            "fidelidad": fidelidad}
+
+
 def iniciar(carpeta):
     """Crea salida/ con libro.css y, si no existe, <parte>.html desde la plantilla base.
 
@@ -59,21 +88,13 @@ def iniciar(carpeta):
         return salida.html
 
     proyecto = salida.proyecto()
-    datos = {"libro": "", "parte": salida.parte, "paginas_original": "?",
-             "idioma_destino": "es", "descripcion_version": ""}
+    datos = {"libro": "", "parte": salida.parte, "paginas_original": "?", "idioma_salida": "es",
+             "descripcion_version": "", "fidelidad": "fiel al documento original"}
     if proyecto:
         parte = next((p for p in proyecto.datos["partes"] if p["id"] == salida.parte), {})
-        ref = proyecto.datos.get("referencia")
         datos.update(libro=proyecto.titulo, parte=parte.get("titulo", salida.parte),
-                     paginas_original=parte.get("original", "?"),
-                     idioma_destino=parte.get("idioma_destino", "es"))
-        version = (f"traducción revisada directamente del original "
-                   f"({proyecto.datos['original']['idioma']}), para estudio personal.")
-        if ref and parte.get("referencia"):
-            version += (f" Sustituye a la versión de referencia (págs. {parte['referencia']} "
-                        f"del PDF en {ref['idioma']}). COMPLETAR: errores típicos que corrige.")
-        version += " Los diagramas se han redibujado en vectores para que se impriman nítidos."
-        datos["descripcion_version"] = version
+                     paginas_original=parte.get("original", "?"))
+        datos.update(_textos_portada(proyecto, parte))
 
     html = (PLANTILLA / "base.html").read_text(encoding="utf-8")
     for clave, valor in datos.items():

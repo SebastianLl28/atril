@@ -1,4 +1,4 @@
-# Atril · plan: traductor y potenciador de libros por partes
+# Atril · plan: preparar documentos para leer y estudiar, por partes
 
 Herramienta personal para elegir páginas de un libro (y, si se quiere, de su versión en otro
 idioma), generar un paquete de contexto ya fusionado y pasárselo a Claude Code para producir
@@ -187,10 +187,8 @@ dar las mismas 32 páginas. Eso confirma que las fuentes y la plantilla funciona
 comandos: `contexto.md` y las 20 figuras idénticos (`tests/test_app.py`).
 
 ### Fase 4 · Mejoras ✅
-- [x] OCR para PDFs sin capa de texto (`src/atril/ocr.py`, `atril ocr <pdf>`), con ocrmypdf
-      (`uv tool install ocrmypdf`) y tesseract spa+eng. Crea «<nombre> (OCR).pdf» al lado del
-      original. `atril nuevo` se niega a usar un PDF sin texto y dice cómo pasarle OCR. La app
-      marca esos PDFs con «⚠ sin texto» y ofrece un botón para pasarles OCR.
+- [x] ~~OCR para PDFs sin capa de texto~~: se hizo y luego se quitó (Fase 5). Atril no acepta
+      PDFs que son solo imágenes.
 - [x] Títulos detectados por tamaño de letra en PDFs sin índice (`Libro.indice_detectado`).
       Si el libro marca los capítulos con un número muy grande, como el escaneo en español,
       esas páginas son capítulos y el resto, secciones. `Libro.indice()` lo usa cuando no hay
@@ -202,6 +200,31 @@ comandos: `contexto.md` y las 20 figuras idénticos (`tests/test_app.py`).
       por parte. Los tests usan un `lp` falso: nunca imprimen.
 - [x] Historial de partes en la app: título, páginas, fecha, estado y enlaces a los PDFs
       construidos (carta y 2 por hoja), más Elegir para volver a seleccionar esas páginas.
+
+### Fase 5 · Más allá de traducir ✅
+Atril no es solo para traducir: sirve para cualquier documento con texto (libros, informes,
+apuntes), y en cada parte se elige qué hacer.
+- [x] **Proyecto = documento.** El PDF principal más, si se quiere, la misma obra en otro
+      idioma (la antigua «referencia», ahora «otra versión»). El diálogo de proyecto nuevo ya
+      no pregunta por la traducción.
+- [x] **Tarea por parte** (`paquete.TAREA`): traducir a un idioma o mantener el del documento
+      (por defecto), mejorar la lectura, comentarios de estudio, contexto y resumen final.
+      Va en la cabecera de `contexto.md`, en `# Tarea` y en `libro.json`. La app tiene
+      presets: transcribir y mejorar, traducir, traducir y enriquecer, enriquecer.
+- [x] **Fuentes adicionales por parte:** notas pegadas, enlaces y páginas de otros PDFs, cuyo
+      texto limpio y figuras entran al paquete (`# Fuentes adicionales`).
+- [x] **Solo PDFs con texto:** `pdf.solo_imagenes` rechaza los escaneos sin capa de texto en
+      `Proyecto.crear`, en la app (aparecen deshabilitados) y como fuente de apoyo. Se quitaron
+      `atril ocr` y ocrmypdf.
+- [x] **PDFs sin índice:** se usa el detectado por tamaño de letra; si no hay títulos, se
+      marcan las páginas a mano. La skill organiza los informes por sus propias secciones.
+- [x] **Skill `/libro` guiada por la tarea:** transcripción fiel cuando no se traduce,
+      recuadros de contexto con su fuente, figuras originales si no se pide mejorar la lectura.
+      La portada (`atril iniciar`) cambia según la tarea.
+
+**Verificación:** `tests/test_tareas.py` (tarea por defecto sin traducir, traducir y
+enriquecer con las tres fuentes, fuentes inválidas, portada según la tarea, CLI y app) y
+`tests/test_fase4.py` (rechazo de PDFs solo imágenes).
 
 ## Referencias
 - Caso real: `referencia/solid/` y `~/Documents/books/Arquitectura Limpia - SOLID (español revisado).pdf`

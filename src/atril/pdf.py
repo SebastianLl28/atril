@@ -16,9 +16,21 @@ ESPACIOS = re.compile(r"[ \t   ]+")
 # Una imagen que cubre casi toda la página es un escaneo, no una figura.
 AREA_ESCANEO = 0.8
 
+# Un PDF con más de la mitad de páginas casi sin texto es solo imágenes y no se acepta.
+MINIMO_CARACTERES, MUESTRA = 25, 30
+
 # Detección de títulos en PDFs sin índice, en múltiplos del tamaño del cuerpo.
 TITULO, SUBTITULO, NUMERO_CAPITULO = 1.75, 1.25, 2.3
 SOLO_NUMERO = re.compile(r"^(\d+|[IVXLC]+)$")
+
+
+def solo_imagenes(ruta, muestra=MUESTRA):
+    """True si el PDF es un escaneo sin capa de texto (mirando una muestra de páginas)."""
+    doc = pymupdf.open(ruta)
+    paso = max(1, len(doc) // muestra)
+    paginas = range(0, len(doc), paso)
+    vacias = sum(len(doc[i].get_text().strip()) < MINIMO_CARACTERES for i in paginas)
+    return bool(len(paginas)) and vacias / len(paginas) > 0.5
 
 
 @dataclass
