@@ -1,28 +1,130 @@
 # Atril
 
-Prepara documentos para leerlos y estudiarlos mejor con Claude Code, sin usar la API de pago:
-libros, informes, apuntes. Eliges páginas de un PDF con texto y decides qué hacer con ellas:
-- transcribir con una maquetación limpia y los diagramas redibujados;
-- traducir;
-- agregar comentarios de estudio o contexto a partir de otras fuentes (notas, enlaces, otros
-  PDFs);
-- cualquier combinación de lo anterior.
+Atril prepara documentos para leerlos y estudiarlos mejor, por partes: libros, informes,
+apuntes. Eliges un rango de páginas de un PDF con texto, decides qué hacer con ellas
+(transcribir con una maquetación limpia, traducir, agregar comentarios de estudio o contexto)
+y al final obtienes un PDF listo para imprimir.
 
-Atril arma un paquete con el texto ya limpio y la skill `/libro` produce el PDF imprimible.
-No acepta PDFs que son solo imágenes (escaneos sin capa de texto). El plan completo está en
-[PLAN.md](PLAN.md).
+![Páginas del PDF imprimible que produce Atril con la skill /libro](docs/capturas/resultado.png)
 
-## Uso
+Atril no usa ninguna API de pago. Todo lo mecánico (leer el PDF, limpiar el texto, emparejar
+páginas, armar el paquete, generar el PDF) lo hace código determinista. La parte que necesita
+IA ocurre dentro de [Claude Code](https://claude.com/claude-code), con la skill `/libro` y tu
+suscripción. Como Claude recibe el texto ya limpio y no las páginas del PDF, se gasta mucho
+menos del plan.
 
-La forma más fácil es la app visual: `uv run atril app` abre el navegador.
-1. Se crea el proyecto con el PDF del documento y, si se quiere, la misma obra en otro idioma
-   para verlas lado a lado.
-2. Se eligen las páginas: un capítulo desde el índice o, si el PDF no trae índice, con clic y
-   mayús+clic.
-3. En «Qué hacer con estas páginas» se elige la tarea y se suman fuentes adicionales.
-4. Al exportar, la app muestra el comando `/libro …` listo para copiar.
+## Qué puedes hacer
 
-Lo mismo se puede hacer por línea de comandos:
+- **Transcribir y mejorar la lectura**: el texto con una maquetación cuidada y los diagramas
+  redibujados en SVG, en blanco, negro y grises. Si no traduces, la transcripción es fiel: solo
+  se corrige lo que rompió la extracción del PDF.
+- **Traducir** a otro idioma, con un glosario que se acumula de una parte a otra. Por defecto
+  el resultado queda en el idioma del documento.
+- **Estudiar**: recuadros de comentario que explican lo difícil, recuadros de contexto
+  apoyados en fuentes adicionales (notas pegadas, enlaces y páginas de otros PDFs) y un
+  resumen final de repaso.
+- **Leer lado a lado con otra versión** del mismo documento en otro idioma. Atril empareja
+  sus páginas automáticamente y puedes corregir el emparejamiento con anclas manuales.
+- **Elegir partes desde el índice** del PDF o, si no trae, desde un índice detectado por el
+  tamaño de letra de los títulos. También puedes buscar un término o marcar páginas a mano.
+- **Exportar un paquete limpio** (`contexto.md` más las figuras) con el texto ya fusionado y
+  la tarea por escrito.
+- **Generar el PDF imprimible** en tamaño carta, una versión de 2 páginas por hoja y
+  miniaturas para revisar la maqueta.
+- **Imprimir** desde la app o la línea de comandos, con `lp` (CUPS).
+- **Llevar el historial de partes**: qué páginas, cuándo, en qué estado y con qué tarea, con
+  enlaces a sus PDFs.
+
+**Límites:** solo acepta PDFs con capa de texto. Los PDFs que son solo imágenes (escaneos sin
+texto) se rechazan y no hay OCR.
+
+## Cómo funciona
+
+```mermaid
+flowchart LR
+    A["PDF del documento<br/>(+ otra versión, opcional)"] --> B["Atril<br/>app o CLI, sin IA"]
+    B --> C["Paquete de la parte<br/>contexto.md + figuras/"]
+    C --> D["Claude Code<br/>/libro"]
+    D --> E["PDF imprimible<br/>carta, 2 por hoja, miniaturas"]
+```
+
+1. Atril lee el PDF, quita encabezados, pies y números de página, reconstruye los párrafos y
+   extrae las figuras.
+2. Al exportar una parte, escribe `contexto.md`: la tarea, tus instrucciones, el glosario, el
+   índice de la parte, las fuentes adicionales y el contenido, página por página (con la otra
+   versión al lado, si la hay).
+3. En Claude Code, `/libro <carpeta>` lee el paquete, te confirma el plan, escribe el HTML
+   sección por sección, redibuja los diagramas, construye el PDF y lo revisa con las
+   miniaturas.
+
+## Requisitos e instalación
+
+- Python 3.14 o superior.
+- [uv](https://docs.astral.sh/uv/).
+- Las librerías de sistema que pide [WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)
+  (sobre todo Pango). En la mayoría de las distribuciones de Linux ya vienen instaladas.
+- Claude Code, para la skill `/libro`.
+- Para imprimir: CUPS (`lp`) y una impresora configurada.
+
+```fish
+git clone <este repo> ~/Projects/atril
+cd ~/Projects/atril
+uv sync
+```
+
+Atril busca los PDFs en `~/Documents/books` y guarda los proyectos en
+`~/Documents/books/proyectos/<proyecto>/`. Puedes cambiar estas rutas con variables de
+entorno:
+
+| Variable | Para qué |
+|---|---|
+| `ATRIL_LIBROS` | carpeta donde la app busca los PDFs |
+| `ATRIL_PROYECTOS` | carpeta de los proyectos |
+| `ATRIL_CACHE` | caché de miniaturas (por defecto, `~/.cache/atril/paginas`) |
+| `ATRIL_IMPRESORA` | impresora, si no es la predeterminada de CUPS |
+
+## Uso con la app
+
+```fish
+uv run atril app          # abre el navegador en http://localhost:8765
+```
+
+**1. Crea el proyecto.** Con «Nuevo proyecto» eliges el PDF del documento, su idioma, un
+título y un nombre corto. Si tienes el mismo documento en otro idioma, lo agregas en «Versión
+en otro idioma»: Atril empareja sus páginas en unos segundos.
+
+![Diálogo «Nuevo proyecto» con el documento y la versión en otro idioma](docs/capturas/proyectos.png)
+
+**2. Elige las páginas.** Las miniaturas del documento y de la otra versión aparecen lado a
+lado, emparejadas por el mapa de páginas. Puedes elegir un capítulo desde el índice, buscar un
+término o hacer clic en una página y mayús+clic en otra para marcar el rango. Si el
+emparejamiento está corrido, ajusta la selección de la otra versión y guárdala con «Guardar
+ajuste como ancla». Doble clic abre una página en grande.
+
+![Documento y otra versión lado a lado, con el índice, la búsqueda y el rango seleccionado](docs/capturas/paneles.png)
+
+**3. Decide qué hacer.** En «Qué hacer con estas páginas» hay atajos (transcribir y mejorar,
+traducir, traducir y enriquecer, enriquecer), el idioma del resultado y las opciones: mejorar
+la lectura, comentarios de estudio, contexto y resumen final. En «Fuentes adicionales» sumas
+notas, enlaces y páginas de otros PDFs. Pon un id para la parte, un título y, si quieres,
+instrucciones propias.
+
+![Panel «Qué hacer con estas páginas» con la tarea y las fuentes adicionales](docs/capturas/tarea.png)
+
+**4. Exporta.** La app escribe el paquete y te muestra el comando `/libro …` listo para
+copiar. Pégalo en Claude Code abierto en este repositorio.
+
+![Parte exportada, con la ruta del paquete y el comando /libro para copiar](docs/capturas/exportado.png)
+
+**5. Revisa e imprime.** En «Historial de partes» ves cada parte con su tarea, páginas, fecha y
+estado, los enlaces a los PDFs construidos (carta y 2 por hoja), «Elegir» para volver a
+seleccionar esas páginas e «Imprimir», donde eliges el PDF, las copias y las páginas.
+
+![Historial de partes con enlaces a los PDFs y el diálogo de impresión](docs/capturas/historial.png)
+
+## Uso por línea de comandos
+
+Todo lo anterior se puede hacer también desde la terminal:
 
 ```fish
 # 1. Crear el proyecto: el documento y, opcional, otra versión en otro idioma (calcula el mapa)
@@ -42,9 +144,13 @@ uv run atril exportar arquitectura-limpia parte-03-solid --original 62-86 \
     --titulo-parte "III · Principios de diseño"
 ```
 
-Después, en Claude Code abierto en este repo: `/libro <carpeta de la parte>`. La skill hace lo
-que diga la tarea (transcribir o traducir, redibujar, comentar, dar contexto); para la salida usa estos comandos, que también se pueden
-correr a mano:
+Otras opciones de `exportar`: `--resumen` (resumen final), `--sin-mejorar` (solo el texto,
+con las figuras originales) e `--instrucciones` (un archivo, o `-` para leer de la entrada
+estándar).
+
+Después, en Claude Code abierto en este repositorio: `/libro <carpeta de la parte>`. La skill
+hace lo que diga la tarea y, para la salida, usa estos comandos, que también puedes correr a
+mano:
 
 ```fish
 uv run atril iniciar   ~/Documents/books/proyectos/arquitectura-limpia/parte-03-solid  # HTML desde la plantilla
@@ -55,22 +161,45 @@ uv run atril ver       ~/Documents/books/proyectos/arquitectura-limpia/parte-03-
 Otros comandos:
 
 ```fish
+uv run atril proyectos                                      # listar proyectos
 uv run atril indice arquitectura-limpia --referencia        # índice detectado si el PDF no trae
 uv run atril imprimir <carpeta-de-la-parte> --2-por-hoja --simular   # quita --simular para imprimir
 ```
 
-Los proyectos se guardan en `~/Documents/books/proyectos/<libro>/`. Para cambiar la carpeta,
-usa la variable `ATRIL_PROYECTOS`.
+`uv run atril <comando> --help` muestra todas las opciones de cada comando.
 
-## Estructura
+## Qué queda en cada proyecto
 
-- `src/atril/`: núcleo (`pdf`, `limpieza`, `mapa`, `paquete`, `proyecto`, `cli`) y salida
-  (`construir`, `svg`, `plantilla/`) la app (`app`, `miniaturas`, `web/`) e `imprimir`
-- `.claude/skills/libro/`: la skill `/libro`
-- `referencia/solid/`: el caso SOLID hecho a mano (HTML, CSS de impresión, SVG); es el modelo
-  de estilo de la skill y la prueba de regresión de la plantilla
-- `tests/`: pruebas con la Parte III del libro real y con el caso SOLID
+```
+~/Documents/books/proyectos/arquitectura-limpia/
+  libro.json          rutas de los PDFs, idiomas, mapa de páginas, anclas y partes
+  glosario.md         términos decididos; se copia en cada exportación nueva
+  parte-03-solid/
+    contexto.md       el paquete que lee /libro
+    figuras/          figuras en su formato original (fig-7.1.jpeg, ilus-p064-1.jpeg…)
+    salida/           HTML, SVG, PDF, PDF 2 por hoja y revision/ con las miniaturas
+```
+
+## Estructura del repositorio
+
+- `src/atril/`
+  - núcleo: `pdf` (lee el PDF y clasifica el texto), `cleaning` (quita marcas, encabezados y
+    pies; reconstruye párrafos), `mapping` (empareja las páginas de las dos versiones),
+    `bundle` (escribe el paquete), `project` (carpeta y `libro.json` de cada proyecto) y `cli`;
+  - salida: `build` (HTML → PDF, 2 por hoja y miniaturas), `svg` (librería de diagramas) y
+    `template/` (`base.html` y `libro.css`);
+  - app: `app` (FastAPI), `thumbnails` (miniaturas de página con caché) y `web/` (HTML + JS
+    sin paso de build);
+  - `printing`: impresión con `lp`.
+- `.claude/skills/libro/`: la skill `/libro`.
+- `referencia/solid/`: la Parte III de *Arquitectura Limpia* (principios SOLID) hecha a mano.
+  Es el modelo de estilo de la skill y la prueba de regresión de la plantilla.
+- `tests/`: pruebas con PDFs sintéticos, con el caso SOLID y con la Parte III del libro real
+  (estas últimas se saltan si los PDFs no están en `~/Documents/books`).
+- `PLAN.md`: las fases del proyecto y su estado.
 
 ```fish
 uv run pytest
 ```
+
+Las pruebas nunca imprimen: usan `--simular` o un `lp` falso.

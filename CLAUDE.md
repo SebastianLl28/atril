@@ -2,115 +2,122 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Qué es
+## What it is
 
-Atril prepara documentos (libros, informes, apuntes) para leerlos y estudiarlos mejor, por
-partes. Se elige un rango de páginas de un PDF con texto (el **documento**, `original` en el
-código) y, si se quiere, de **otra versión** en otro idioma (`referencia` en el código y en
-`libro.json`). En cada parte se decide la **tarea**:
-- traducir o mantener el idioma;
-- mejorar la lectura;
-- comentarios, contexto, resumen.
+Atril prepares documents (books, reports, notes) so they can be read and studied better, part by
+part. You pick a page range from a PDF with text (the **documento**, i.e. the document;
+`original` in the code) and, optionally, from an **otra versión** (another version) in another
+language (`reference` in the code, `referencia` in `libro.json`). For each part you choose the
+**tarea** (task):
+- translate or keep the language;
+- improve readability;
+- comments, context, summary.
 
-Se pueden sumar **fuentes adicionales**: notas, enlaces y páginas de otros PDFs. Atril exporta
-un `contexto.md` con el texto ya limpio y fusionado, más sus figuras. **No traducir no es un caso
-raro**: el idioma de salida por defecto es el del documento. No se aceptan PDFs que son solo
-imágenes (`pdf.solo_imagenes`); no hay OCR.
+You can add **fuentes adicionales** (additional sources): notes, links and pages from other PDFs.
+Atril exports a `contexto.md` with the text already cleaned and merged, plus its figures. **Not
+translating is not a rare case**: the default output language is the document's. Image-only PDFs
+are rejected (`pdf.is_image_only`); there is no OCR.
 
-Después Claude Code procesa ese paquete con la skill `/libro` para producir el PDF final.
-`PLAN.md` tiene las fases y su estado: leerlo antes de empezar trabajo nuevo.
+Claude Code then processes that bundle with the `/libro` skill to produce the final PDF.
+`PLAN.md` lists the phases and their status: read it before starting new work.
 
-**Restricción de diseño:** nada puede llamar a la API de Anthropic. La parte con IA ocurre
-dentro de Claude Code (skill `/libro`, con la suscripción del usuario). Todo lo mecánico va en
-código determinista, para gastar menos del plan.
+**Design constraint:** nothing may call the Anthropic API. The AI part happens inside Claude
+Code (the `/libro` skill, on the user's subscription). Everything mechanical is deterministic
+code, to use less of the plan.
 
-## Comandos
+## Commands
 
 ```fish
-uv sync                                        # instalar dependencias
-uv run pytest                                  # todos los tests
-uv run pytest tests/test_parte_iii.py::test_salen_las_20_figuras   # un test
+uv sync                                        # install dependencies
+uv run pytest                                  # all tests
+uv run pytest tests/test_part_iii.py::test_all_20_figures_are_extracted   # one test
 uv run atril --help                            # CLI: nuevo | proyectos | indice | mapa | exportar
-                                               #      iniciar | construir | ver (salida a PDF) | app
-                                               #      imprimir (--simular: no imprime)
+                                               #      iniciar | construir | ver (output to PDF) | app
+                                               #      imprimir (--simular: does not print)
 ```
 
-`tests/test_parte_iii.py` usa los PDFs reales de `~/Documents/books` (Arquitectura Limpia) y
-se salta si no están (igual que el test app = CLI de `tests/test_app.py`);
-`tests/test_salida.py` y el resto de `test_app.py` no necesitan los PDFs. El nombre del PDF en español usa una «ñ» descompuesta (NFD): buscarlo con glob
-(`Espa*l.pdf`), no con el nombre literal.
+`tests/test_part_iii.py` uses the real PDFs from `~/Documents/books` (Arquitectura Limpia) and
+is skipped if they are missing (same as the app = CLI test in `tests/test_app.py`);
+`tests/test_output.py` and the rest of `test_app.py` do not need the PDFs. The Spanish PDF's
+name uses a decomposed «ñ» (NFD): find it with a glob (`Espa*l.pdf`), not the literal name.
 
-## Arquitectura
+## Architecture
 
-Flujo: `pdf.Libro` → `limpieza.limpiar` → `paquete.exportar` → `contexto.md`, con
-`mapa` y `proyecto` alrededor.
+Flow: `pdf.Book` → `cleaning.clean` → `bundle.export` → `contexto.md`, with
+`mapping` and `project` around it.
 
-- **`pdf.py`**: convierte cada página en una lista de `Elemento` (titulo, subtitulo, parrafo,
-  cita, codigo, vineta, pie_figura, imagen), ordenados por posición vertical.
-  - La clasificación es **relativa al tamaño de letra del cuerpo** (`tamano_cuerpo`, el más
-    usado en una muestra del libro), no a tamaños absolutos.
-  - Las fuentes monoespaciadas marcan código: si todo el bloque es mono, es un bloque de
-    código; si son fragmentos dentro de prosa, quedan como `` `código` ``.
-  - Las imágenes que cubren más del 80 % de la página se descartan: son escaneos, como cada
-    página del PDF en español, no figuras.
-- **`limpieza.py`**: quita marcas fijas (`MARCAS`, más `limpieza.marcas` de libro.json), los
-  encabezados y pies repetidos en la franja superior o inferior de la página y los números de
-  página. Después `fusionar` reconstruye los párrafos partidos línea a línea (el PDF escaneado
-  trae un bloque por línea) y une el código consecutivo.
-- **`mapa.py`**: empareja cada página de la referencia con una del original, sin IA.
-  - Usa como anclas las palabras idénticas en ambos idiomas, ponderadas por idf, y los números
-    de figura.
-  - Una programación dinámica monótona elige el camino: la página del original avanza 0–2 por
-    cada página de la referencia.
-  - Las anclas manuales (`atril mapa --ancla REF=ORIG`) fuerzan el camino. Se guardan en
-    `libro.json` y el mapa completo se recalcula.
-- **`proyecto.py`**: la carpeta de cada libro vive **fuera del repo**, en
-  `~/Documents/books/proyectos/<slug>/` (se cambia con `ATRIL_PROYECTOS`). Contiene:
-  - `libro.json`: rutas de los PDFs, idiomas, mapa, anclas y partes exportadas;
-  - `glosario.md`: lo actualiza la skill y se copia en cada exportación nueva;
-  - una carpeta por parte.
-- **`paquete.py`**: con un solo rango basta; el otro se deduce del mapa. Escribe:
-  - `<parte>/contexto.md`: cabecera YAML con las rutas absolutas a los PDFs originales como
-    respaldo, `tarea` e `idioma_salida`. Después, las secciones `# Tarea` (en palabras),
-    `# Instrucciones`, `# Glosario`, `# Índice de la parte`, `# Fuentes adicionales` (notas,
-    enlaces y el texto limpio de otros PDFs) y `# Contenido`, con un `## Bloque` por página
-    del documento y sus páginas de la otra versión agrupadas;
-  - `<parte>/figuras/`: las imágenes en su formato original, llamadas `fig-7.1` si tienen pie
-    de figura o `ilus-pNNN-k` si no. Las de la otra versión llevan el prefijo `ref-` y las de
-    los PDFs de apoyo, `fuenteN-`.
+- **`pdf.py`**: turns each page into a list of `Element` (kind: title, subtitle,
+  paragraph, quote, code, bullet, caption, image), sorted by vertical position.
+  - Classification is **relative to the body font size** (`body_size`, the most common size in
+    a sample of the book), not to absolute sizes.
+  - Monospaced fonts mark code: if the whole block is mono, it is a code block; if they are
+    fragments inside prose, they become `` `code` ``.
+  - Images covering more than 80 % of the page are discarded: they are scans, like every page
+    of the Spanish PDF, not figures.
+- **`cleaning.py`**: removes fixed marks (`MARKS`, plus `limpieza.marcas` from libro.json),
+  headers and footers repeated in the top or bottom band of the page, and page numbers. Then
+  `merge` rebuilds paragraphs split line by line (the scanned PDF has one block per line) and
+  joins consecutive code.
+- **`mapping.py`**: pairs each reference page with an original page, without AI.
+  - Anchors are words identical in both languages, weighted by idf, and figure numbers.
+  - A monotonic dynamic program picks the path: the original page advances 0–2 for each
+    reference page.
+  - Manual anchors (`atril mapa --ancla REF=ORIG`) force the path. They are saved in
+    `libro.json` and the whole map is recomputed.
+- **`project.py`**: each book's folder lives **outside the repo**, in
+  `~/Documents/books/proyectos/<slug>/` (override with `ATRIL_PROYECTOS`). It contains:
+  - `libro.json`: PDF paths, languages, map, anchors and exported parts;
+  - `glosario.md`: updated by the skill and copied into each new export;
+  - one folder per part.
+- **`bundle.py`**: one range is enough; the other is derived from the map. It writes:
+  - `<parte>/contexto.md`: YAML header with absolute paths to the original PDFs as a
+    fallback, `tarea` and `idioma_salida`. Then the sections `# Tarea` (in words),
+    `# Instrucciones`, `# Glosario`, `# Índice de la parte`, `# Fuentes adicionales` (notes,
+    links and the cleaned text of other PDFs) and `# Contenido`, with one `## Bloque` per
+    document page and its other-version pages grouped under it;
+  - `<parte>/figuras/`: images in their original format, named `fig-7.1` if they have a
+    caption or `ilus-pNNN-k` if not. Those from the other version get the `ref-` prefix and
+    those from supporting PDFs, `fuenteN-`.
 
-  `paquete.TAREA` define los campos de la tarea; la app (`app.Tarea`), la CLI y la portada
-  (`construir._textos_portada`) la siguen.
-  
-  La skill `/libro` consume este formato: si se cambia, hay que actualizar ambos.
-- **`construir.py`** + **`plantilla/`** (`libro.css`, `base.html`): todo en `<parte>/salida/`.
-  `iniciar` crea `<parte>.html` desde la plantilla. `construir` copia `libro.css`, genera el
-  PDF (WeasyPrint), el 2 por hoja (pypdf) y las miniaturas `revision/hoja-NN.png` (PyMuPDF), y
-  marca la parte `construida`. Los ajustes de una parte van en un `<style>` de su HTML, no en
-  `libro.css`.
-- **`svg.py`**: librería de diagramas (`Svg` con `cls`, `arrow`, `actor`, `component`…). Cada
-  parte la usa desde su `salida/figs.py`.
-- **`app.py`** + **`web/`** + **`miniaturas.py`**: la app visual (`atril app`). `crear_app(raiz,
-  libros, cache)` arma la FastAPI. Guarda en memoria un `Proyecto` abierto por slug y protege
-  PyMuPDF con un candado, porque no es seguro entre hilos. El frontend es HTML + JS sin build.
-  `web/app.js` repite en JS `rango_original` y `rango_referencia` de `mapa.py`: si cambian,
-  hay que cambiar los dos. Los textos de página se cachean en `Libro.textos`.
-- **`imprimir.py`**: `lp` a la impresora predeterminada (Epson
-  L3250) o a `ATRIL_IMPRESORA`. **Nunca imprimir de verdad en pruebas**: usar `--simular` o el
-  `lp` falso de `tests/test_fase4.py`.
-- **Índice detectado** (`Libro.indice_detectado`): si el PDF no trae TOC, salen títulos por
-  tamaño relativo al cuerpo. Las páginas con número de capítulo muy grande (≥ 2,3×) son
-  capítulos.
-- **`.claude/skills/libro/SKILL.md`**: la skill `/libro`, con los pasos y las reglas de estilo
-  sacadas del caso SOLID.
+  `bundle.TASK` defines the task fields; the app (`app.Task`), the CLI and the cover page
+  (`build._cover_texts`) follow it.
 
-`referencia/solid/` es el caso hecho a mano (Parte III, principios SOLID): `solid.html` y
-`figs.py`, que usa `atril.svg`. Es el modelo de estilo de la skill y la regresión de la
-plantilla: compilado con `libro.css` debe dar las mismas 32 páginas. Si se toca `libro.css` o
-`svg.py`, `tests/test_salida.py` lo comprueba. `en-p62-86.txt` es la referencia que usan
-los tests para comprobar que el texto extraído está completo.
+  The `/libro` skill consumes this format: if it changes, update both.
+- **`build.py`** + **`template/`** (`libro.css`, `base.html`): everything goes in
+  `<parte>/salida/`. `init` (`atril iniciar`) creates `<parte>.html` from the template. `build`
+  (`atril construir`) copies `libro.css`, generates the PDF (WeasyPrint), the 2-up version
+  (pypdf) and the thumbnails `revision/hoja-NN.png` (PyMuPDF), and marks the part `construida`.
+  Per-part tweaks go in a `<style>` in its HTML, not in `libro.css`.
+- **`svg.py`**: diagram library (`Svg` with `cls`, `arrow`, `actor`, `component`…). Each
+  part uses it from its `salida/figs.py`.
+- **`app.py`** + **`web/`** + **`thumbnails.py`**: the visual app (`atril app`).
+  `create_app(root, books, cache)` builds the FastAPI app. It keeps one open `Project` per slug
+  in memory and guards PyMuPDF with a lock, because it is not thread-safe. The frontend is
+  HTML + JS with no build step. `web/app.js` duplicates in JS `original_range` and
+  `reference_range` from `mapping.py` (`originalRange`, `referenceRange`): if they change,
+  change both. Page texts are cached in `Book.texts`.
+- **`printing.py`**: `lp` to the default printer (Epson L3250) or to `ATRIL_IMPRESORA`.
+  **Never actually print in tests**: use `--simular` or the fake `lp` in
+  `tests/test_phase4.py`.
+- **Detected table of contents** (`Book.detected_toc`): if the PDF has no TOC, titles are
+  found by size relative to the body. Pages with a very large chapter number (≥ 2.3×) are
+  chapters.
+- **`.claude/skills/libro/SKILL.md`**: the `/libro` skill, with the steps and the style rules
+  taken from the SOLID case.
 
-## Convenciones
+`referencia/solid/` is the hand-made case (Part III, SOLID principles): `solid.html` and
+`figs.py`, which uses `atril.svg`. It is the skill's style model and the template's regression
+test: compiled with `libro.css` it must produce the same 32 pages. If `libro.css` or `svg.py`
+is touched, `tests/test_output.py` checks it. `en-p62-86.txt` is the reference the tests use to
+check that the extracted text is complete.
 
-El código, los nombres y los mensajes están en español, igual que la conversación con el
-usuario.
+## Conventions
+
+- Internal code is in English: module, function, class and variable names, comments and
+  docstrings. Comments only when they explain something the code does not say.
+- These stay in Spanish: everything the user sees (CLI and app text, error messages), CLI
+  command names and their flags, and on-disk or shared formats: `libro.json` keys, the content
+  of `contexto.md`, names of written files and folders, API routes and JSON fields, and
+  environment variables.
+- Commit messages are in English, with no `Co-Authored-By` or `Claude-Session` trailers.
+- Conversation with the user is in Spanish.
