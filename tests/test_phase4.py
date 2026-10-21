@@ -1,17 +1,12 @@
-"""Phase 4 tests: detected TOC, image-only PDFs, printing and history in the app.
-
-Printing never reaches the printer: it is either a dry run or a fake `lp` on the PATH.
+"""Phase 4 tests: detected TOC, image-only PDFs and history in the app.
 """
 
-import os
 import shutil
-import stat
 
 import pymupdf
 import pytest
 from fastapi.testclient import TestClient
 
-from atril import cli, printing
 from atril.app import create_app
 from atril.pdf import Book, is_image_only
 from atril.project import Project
@@ -81,34 +76,6 @@ def test_rejects_image_only_pdfs(tmp_path):
 
 
 @pytest.fixture
-def fake_lp(tmp_path, monkeypatch):
-    """An `lp` that only logs its arguments; first on the PATH."""
-    bin_ = tmp_path / "bin"
-    bin_.mkdir()
-    log = tmp_path / "lp.log"
-    lp = bin_ / "lp"
-    lp.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{log}"\n'
-                  'echo "request id is Falsa-1 (1 file(s))"\n')
-    lp.chmod(lp.stat().st_mode | stat.S_IEXEC)
-    monkeypatch.setenv("PATH", f"{bin_}{os.pathsep}{os.environ['PATH']}")
-    monkeypatch.delenv("ATRIL_IMPRESORA", raising=False)
-    assert shutil.which("lp") == str(lp)
-    return log
-
-
-def test_print_command():
-    assert printing.command("x.pdf", "Epson", 2, "1-3", "parte") == [
-        "lp", "-d", "Epson", "-n", "2", "-o", "media=Letter", "-o", "fit-to-page",
-        "-P", "1-3", "-t", "parte", "x.pdf"]
-    cmd, message = printing.print_pdf("x.pdf", dry_run=True)
-    assert cmd[0] == "lp" and "simulado" in message
-    with pytest.raises(ValueError):
-        printing.print_pdf("x.pdf", pages="1; rm -rf /", dry_run=True)
-    with pytest.raises(ValueError):
-        printing.print_pdf("x.pdf", copies=0, dry_run=True)
-
-
-@pytest.fixture
 def built_part(tmp_path):
     """Project with a part that already has its PDFs in salida/ (skipping WeasyPrint)."""
     _book_without_toc(tmp_path / "orig.pdf")
@@ -124,16 +91,7 @@ def built_part(tmp_path):
     return root, folder
 
 
-def test_cli_print(built_part, fake_lp, capsys):
-    _, folder = built_part
-    cli.main(["imprimir", str(folder), "--simular"])
-    assert "simulado" in capsys.readouterr().out and not fake_lp.exists()
-    cli.main(["imprimir", str(folder), "--2-por-hoja", "--copias", "2"])
-    args = fake_lp.read_text()
-    assert "-n 2" in args and args.strip().endswith("cap-1-2-por-hoja.pdf")
-
-
-def test_app_history_pdf_and_printing(built_part, fake_lp, tmp_path):
+def test_app_history_and_pdf(built_part, tmp_path):
     root, _ = built_part
     c = TestClient(create_app(root=root, books=tmp_path, cache=tmp_path / "cache"))
     d = c.get("/api/proyectos/demo").json()
@@ -144,14 +102,6 @@ def test_app_history_pdf_and_printing(built_part, fake_lp, tmp_path):
     r = c.get("/api/proyectos/demo/partes/cap-1/pdf?tipo=2x1")
     assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
     assert c.get("/api/proyectos/demo/partes/nada/pdf").status_code == 404
-
-    url = "/api/proyectos/demo/partes/cap-1/imprimir"
-    r = c.post(url, json={"tipo": "carta", "copias": 1, "simular": True}).json()
-    assert "simulado" in r["mensaje"] and not fake_lp.exists()
-    r = c.post(url, json={"tipo": "carta", "copias": 3, "paginas": "1-2"}).json()
-    assert "Falsa-1" in r["mensaje"]
-    assert "-n 3" in fake_lp.read_text() and "-P 1-2" in fake_lp.read_text()
-    assert c.post(url, json={"paginas": "1;x"}).status_code == 422
 
 
 def test_app_flags_and_rejects_image_only_pdfs(tmp_path):

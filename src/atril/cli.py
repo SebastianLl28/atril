@@ -126,19 +126,6 @@ def cmd_view(args):
         print(path)
 
 
-def cmd_print(args):
-    from .printing import print_pdf
-
-    out = build.Output(args.carpeta)
-    pdf = out.pdf_2up if args.dos_por_hoja else out.pdf
-    if not pdf.exists():
-        sys.exit(f"Falta {pdf}: primero `atril construir {args.carpeta}`")
-    cmd, message = print_pdf(pdf, args.impresora, args.copias, args.paginas, out.part,
-                             args.simular)
-    print(" ".join(cmd))
-    print(message)
-
-
 def cmd_app(args):
     from .app import serve  # FastAPI is only imported for the app
 
@@ -146,7 +133,7 @@ def cmd_app(args):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="atril", description="Línea de comandos de Atril: nuevo, mapa, exportar, construir, app, imprimir… (ver --help).")
+    ap = argparse.ArgumentParser(prog="atril", description="Línea de comandos de Atril: nuevo, mapa, exportar, construir, app… (ver --help).")
     sub = ap.add_subparsers(required=True)
 
     s = sub.add_parser("nuevo", help="crear el proyecto de un documento (libro, informe…)")
@@ -210,15 +197,6 @@ def main(argv=None):
     s.add_argument("carpeta")
     s.add_argument("paginas", type=_pages, help="p. ej. 5 o 3,7-9")
     s.set_defaults(fn=cmd_view)
-
-    s = sub.add_parser("imprimir", help="mandar el PDF de una parte a la impresora (lp)")
-    s.add_argument("carpeta", help="carpeta de la parte")
-    s.add_argument("--2-por-hoja", dest="dos_por_hoja", action="store_true")
-    s.add_argument("--copias", type=int, default=1)
-    s.add_argument("--paginas", help="p. ej. 1-4,7")
-    s.add_argument("--impresora", help="por defecto, la predeterminada de CUPS o ATRIL_IMPRESORA")
-    s.add_argument("--simular", action="store_true", help="mostrar el comando sin imprimir")
-    s.set_defaults(fn=cmd_print)
 
     s = sub.add_parser("app", help="abrir la app visual en el navegador")
     s.add_argument("--puerto", type=int, default=8765)

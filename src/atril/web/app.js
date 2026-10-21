@@ -27,7 +27,6 @@ const state = {
   partEdited: false,
   viewer: null,       // { side, n } in the large view
   pdfs: [],           // PDFs in ~/Documents/books, for the new-project dialog
-  printing: null,     // part about to be printed
 };
 
 // ---------------------------------------------------------------- utilities
@@ -454,7 +453,6 @@ function drawParts() {
     const links = [
       x.pdfs.carta ? `<a href="${base(x.id)}?tipo=carta" target="_blank">PDF</a>` : "",
       x.pdfs["2x1"] ? `<a href="${base(x.id)}?tipo=2x1" target="_blank">2 por hoja</a>` : "",
-      x.pdfs.carta ? `<button type="button" data-print="${i}">Imprimir</button>` : "",
     ].join("");
     return `<li><b>${esc(x.titulo || x.id)}</b>` +
       `<div class="meta">${esc(x.id)} · p. ${x.original}${x.referencia ? ` ↔ ${x.referencia}` : ""}` +
@@ -462,32 +460,6 @@ function drawParts() {
       `<span class="status ${x.estado}">${x.estado}</span> <span class="task-chip">${esc(taskSummary(x.tarea || (x.idioma_destino ? { traducir: x.idioma_destino, mejorar_lectura: true } : null)))}</span>` +
       `<div class="buttons"><button type="button" data-pick="${i}" title="Volver a elegir estas páginas">Elegir</button>${links}</div></li>`;
   }).join("") : '<li class="note">Todavía no hay partes exportadas.</li>';
-}
-
-async function openPrintDialog(i) {
-  const x = state.p.partes[i];
-  state.printing = x;
-  $("#pr-part").textContent = x.titulo || x.id;
-  $("#pr-kind").value = "carta";
-  $("#pr-kind").querySelector('[value="2x1"]').disabled = !x.pdfs["2x1"];
-  $("#pr-copies").value = 1;
-  $("#pr-pages").value = "";
-  $("#dlg-print").showModal();
-  try {
-    const printers = await api("/api/impresoras");
-    $("#pr-printer").textContent = printers.predeterminada || "predeterminada del sistema";
-  } catch { $("#pr-printer").textContent = "predeterminada del sistema"; }
-}
-
-async function sendPrint(ev) {
-  ev.preventDefault();
-  const x = state.printing;
-  const body = { tipo: $("#pr-kind").value, copias: +$("#pr-copies").value || 1,
-                 paginas: $("#pr-pages").value.trim() || null };
-  const r = await busy("Enviando a la impresora…", () =>
-    api(`/api/proyectos/${state.p.slug}/partes/${encodeURIComponent(x.id)}/imprimir`, { method: "POST", body }));
-  $("#dlg-print").close();
-  notify(r.mensaje || "Enviado a la impresora");
 }
 
 function pickPart(i) {
@@ -662,10 +634,7 @@ $("#parts").addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   if (b.dataset.pick !== undefined) pickPart(+b.dataset.pick);
-  if (b.dataset.print !== undefined) openPrintDialog(+b.dataset.print);
 });
-$("#print-form").addEventListener("submit", sendPrint);
-$("#pr-cancel").addEventListener("click", () => $("#dlg-print").close());
 
 $("#dlg-viewer").addEventListener("click", (e) => {
   const step = e.target.dataset?.step;

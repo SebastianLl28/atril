@@ -135,22 +135,6 @@
   </form>
 </dialog>
 
-<dialog id="dlg-print">
-  <form id="print-form" method="dialog">
-    <h2>Imprimir <span id="pr-part"></span></h2>
-    <label>PDF
-      <select id="pr-kind"><option value="carta">Carta (1 página por hoja)</option><option value="2x1">2 por hoja</option></select>
-    </label>
-    <label>Copias <input id="pr-copies" type="number" min="1" max="20" value="1" size="4"></label>
-    <label>Páginas (opcional) <input id="pr-pages" placeholder="todas, o p. ej. 1-4,7" pattern="[0-9,\-]*"></label>
-    <p class="note">Impresora: <b id="pr-printer">predeterminada</b></p>
-    <div class="buttons">
-      <button type="button" id="pr-cancel">Cancelar</button>
-      <button type="submit" class="primary">Imprimir</button>
-    </div>
-  </form>
-</dialog>
-
 <dialog id="dlg-viewer" class="viewer">
   <div class="bar"><span id="viewer-title"></span><span class="spacer"></span>
     <button type="button" data-step="-1">←</button><button type="button" data-step="1">→</button>

@@ -33,7 +33,6 @@ uv run pytest                                  # all tests
 uv run pytest tests/test_part_iii.py::test_all_20_figures_are_extracted   # one test
 uv run atril --help                            # CLI: nuevo | proyectos | indice | mapa | exportar
                                                #      iniciar | construir | ver (output to PDF) | app
-                                               #      imprimir (--simular: does not print)
 ```
 
 `tests/test_part_iii.py` uses the real PDFs from `~/Documents/books` (Arquitectura Limpia) and
@@ -96,9 +95,6 @@ Flow: `pdf.Book` → `cleaning.clean` → `bundle.export` → `contexto.md`, wit
   HTML + JS with no build step. `web/app.js` duplicates in JS `original_range` and
   `reference_range` from `mapping.py` (`originalRange`, `referenceRange`): if they change,
   change both. Page texts are cached in `Book.texts`.
-- **`printing.py`**: `lp` to the default printer (Epson L3250) or to `ATRIL_IMPRESORA`.
-  **Never actually print in tests**: use `--simular` or the fake `lp` in
-  `tests/test_phase4.py`.
 - **Detected table of contents** (`Book.detected_toc`): if the PDF has no TOC, titles are
   found by size relative to the body. Pages with a very large chapter number (≥ 2.3×) are
   chapters.

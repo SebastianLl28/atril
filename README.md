@@ -31,7 +31,6 @@ menos del plan.
   la tarea por escrito.
 - **Generar el PDF imprimible** en tamaño carta, una versión de 2 páginas por hoja y
   miniaturas para revisar la maqueta.
-- **Imprimir** desde la app o la línea de comandos, con `lp` (CUPS).
 - **Llevar el historial de partes**: qué páginas, cuándo, en qué estado y con qué tarea, con
   enlaces a sus PDFs.
 
@@ -64,7 +63,6 @@ flowchart LR
 - Las librerías de sistema que pide [WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)
   (sobre todo Pango). En la mayoría de las distribuciones de Linux ya vienen instaladas.
 - Claude Code, para la skill `/libro`.
-- Para imprimir: CUPS (`lp`) y una impresora configurada.
 
 ```fish
 git clone <este repo> ~/Projects/atril
@@ -81,7 +79,10 @@ entorno:
 | `ATRIL_LIBROS` | carpeta donde la app busca los PDFs |
 | `ATRIL_PROYECTOS` | carpeta de los proyectos |
 | `ATRIL_CACHE` | caché de miniaturas (por defecto, `~/.cache/atril/paginas`) |
-| `ATRIL_IMPRESORA` | impresora, si no es la predeterminada de CUPS |
+| `ATRIL_HOST` | dirección donde escucha la app (por defecto, `127.0.0.1`) |
+
+En vez de exportarlas, copia `.env.example` a `.env` (no se sube a git) y edítalo; las
+variables del entorno real tienen prioridad sobre el archivo.
 
 ## Uso con la app
 
@@ -116,11 +117,11 @@ copiar. Pégalo en Claude Code abierto en este repositorio.
 
 ![Parte exportada, con la ruta del paquete y el comando /libro para copiar](docs/capturas/exportado.png)
 
-**5. Revisa e imprime.** En «Historial de partes» ves cada parte con su tarea, páginas, fecha y
+**5. Revisa y descarga.** En «Historial de partes» ves cada parte con su tarea, páginas, fecha y
 estado, los enlaces a los PDFs construidos (carta y 2 por hoja), «Elegir» para volver a
-seleccionar esas páginas e «Imprimir», donde eliges el PDF, las copias y las páginas.
+seleccionar esas páginas.
 
-![Historial de partes con enlaces a los PDFs y el diálogo de impresión](docs/capturas/historial.png)
+![Historial de partes con enlaces a los PDFs](docs/capturas/historial.png)
 
 ## Uso por línea de comandos
 
@@ -163,7 +164,6 @@ Otros comandos:
 ```fish
 uv run atril proyectos                                      # listar proyectos
 uv run atril indice arquitectura-limpia --referencia        # índice detectado si el PDF no trae
-uv run atril imprimir <carpeta-de-la-parte> --2-por-hoja --simular   # quita --simular para imprimir
 ```
 
 `uv run atril <comando> --help` muestra todas las opciones de cada comando.
@@ -190,7 +190,6 @@ uv run atril imprimir <carpeta-de-la-parte> --2-por-hoja --simular   # quita --s
     `template/` (`base.html` y `libro.css`);
   - app: `app` (FastAPI), `thumbnails` (miniaturas de página con caché) y `web/` (HTML + JS
     sin paso de build);
-  - `printing`: impresión con `lp`.
 - `.claude/skills/libro/`: la skill `/libro`.
 - `referencia/solid/`: la Parte III de *Arquitectura Limpia* (principios SOLID) hecha a mano.
   Es el modelo de estilo de la skill y la prueba de regresión de la plantilla.
@@ -201,5 +200,3 @@ uv run atril imprimir <carpeta-de-la-parte> --2-por-hoja --simular   # quita --s
 ```fish
 uv run pytest
 ```
-
-Las pruebas nunca imprimen: usan `--simular` o un `lp` falso.

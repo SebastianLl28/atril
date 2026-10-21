@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import bundle, printing, thumbnails
+from . import bundle, thumbnails
 from .build import Output
 from .pdf import is_image_only
 from .project import ROOT, Project
@@ -44,13 +44,6 @@ class NewProject(BaseModel):
 class Anchor(BaseModel):
     referencia: int
     original: int
-
-
-class PrintJob(BaseModel):
-    tipo: str = "carta"  # carta | 2x1
-    copias: int = 1
-    paginas: str | None = None
-    simular: bool = False
 
 
 class SourcePdf(BaseModel):
@@ -167,12 +160,6 @@ def create_app(root=None, books=None, cache=None):
                  "paginas": page_count(f), "solo_imagenes": lacks_text(f)}
                 for f in sorted(found, key=lambda f: str(f).lower())]
 
-    @app.get("/api/impresoras")
-    def list_printers():
-        names, default = printing.printers()
-        return {"impresoras": names,
-                "predeterminada": os.environ.get("ATRIL_IMPRESORA") or default}
-
     @app.get("/api/proyectos")
     def list_projects():
         result = []
@@ -284,29 +271,18 @@ def create_app(root=None, books=None, cache=None):
         return FileResponse(path, media_type="application/pdf",
                             content_disposition_type="inline")
 
-    @app.post("/api/proyectos/{slug}/partes/{parte}/imprimir")
-    def send_to_printer(slug: str, parte: str, data: PrintJob):
-        path = part_pdf(project(slug), parte, data.tipo)
-        if not path or not path.exists():
-            raise HTTPException(404, "Esa parte todavía no tiene ese PDF construido")
-        try:
-            cmd, message = printing.print_pdf(path, copies=data.copias, pages=data.paginas,
-                                              title=parte, dry_run=data.simular)
-        except (ValueError, RuntimeError) as e:
-            raise HTTPException(422, str(e))
-        return {"comando": cmd, "mensaje": message}
-
     app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
     return app
 
 
-def serve(port=8765, open_browser=True):
+def serve(port=8765, open_browser=True, host=None):
     import webbrowser
 
     import uvicorn
 
-    url = f"http://127.0.0.1:{port}"
+    host = host or os.environ.get("ATRIL_HOST", "127.0.0.1")
+    url = f"http://{host}:{port}"
     print(f"Atril en {url} (Ctrl+C para salir)")
     if open_browser:
         threading.Timer(1.0, webbrowser.open, [url]).start()
-    uvicorn.run(create_app(), host="127.0.0.1", port=port, log_level="warning")
+    uvicorn.run(create_app(), host=host, port=port, log_level="warning")

@@ -194,10 +194,8 @@ comandos: `contexto.md` y las 20 figuras idénticos (`tests/test_app.py`).
       esas páginas son capítulos y el resto, secciones. `Libro.indice()` lo usa cuando no hay
       TOC; `atril indice --referencia` lo muestra. En el PDF en inglés acierta más del 95 % de
       los capítulos del índice real.
-- [x] Imprimir con `lp` en la Epson L3250 (`src/atril/imprimir.py`, `atril imprimir <carpeta>`
-      con `--2-por-hoja`, `--copias`, `--paginas` y `--simular`). Usa la impresora
-      predeterminada de CUPS, u otra con `ATRIL_IMPRESORA`. En la app hay un botón Imprimir
-      por parte. Los tests usan un `lp` falso: nunca imprimen.
+- [x] ~~Imprimir con `lp`~~ Quitado: el usuario descarga el PDF (carta o 2 por hoja) desde la
+      app y lo imprime él.
 - [x] Historial de partes en la app: título, páginas, fecha, estado y enlaces a los PDFs
       construidos (carta y 2 por hoja), más Elegir para volver a seleccionar esas páginas.
 
